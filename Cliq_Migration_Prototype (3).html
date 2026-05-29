@@ -1,0 +1,4317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zoho Cliq — User Migration Flow Prototype v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* Cliq design tokens — matched to existing Cliq admin (Domain Verification) */
+    --bg: #f7f8fa;
+    --panel: #ffffff;
+    --border: #e6e8eb;
+    --border-strong: #d6d9dd;
+    --ink: #1a2027;
+    --ink-2: #5f6c7a;
+    --ink-3: #8a96a3;
+    --primary: #2196f3;
+    --primary-700: #1976d2;
+    --primary-50: #e3f2fd;
+    --teal: #1eaa9c;
+    --green: #2ea169;
+    --green-50: #e6f5ed;
+    --amber: #c98a2b;
+    --amber-50: #fdf3e2;
+    --red: #d8453a;
+    --red-50: #fdecea;
+    --purple: #6b5ce7;
+    --gray-50: #f3f5f8;
+    --gray-100: #e9ecef;
+    --shadow-sm: 0 1px 2px rgba(16,24,40,.04);
+    --shadow-md: 0 4px 16px rgba(16,24,40,.08);
+    --shadow-lg: 0 12px 40px rgba(16,24,40,.12);
+    --radius: 6px;
+    --radius-lg: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .app {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+  /* Demo Sidebar (not the product — this controls the prototype) */
+  .demo-sidebar {
+    background: #0e1116;
+    color: #d5dadf;
+    padding: 20px 16px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .demo-sidebar h1 {
+    font-size: 14px;
+    color: #fff;
+    margin: 0 0 4px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .demo-sidebar .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    background: #2a313a;
+    color: #99a3ad;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .demo-section { margin-bottom: 22px; }
+  .demo-section .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7480;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .step-nav { list-style: none; padding: 0; margin: 0; }
+  .step-nav li {
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #b6bcc4;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all .12s ease;
+    margin-bottom: 2px;
+  }
+  .step-nav li:hover { background: #1a2028; color: #fff; }
+  .step-nav li.active { background: var(--primary); color: #fff; }
+  .step-nav .num {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #2a313a; color: #99a3ad;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .step-nav li.active .num { background: rgba(255,255,255,.25); color: #fff; }
+  .step-nav .substep {
+    padding-left: 26px;
+    font-size: 11px;
+    color: #8a929b;
+  }
+  .toggle-group {
+    display: flex;
+    background: #1a2028;
+    border-radius: 6px;
+    padding: 3px;
+    margin-bottom: 8px;
+  }
+  .toggle-group button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #8a929b;
+    padding: 6px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .12s ease;
+  }
+  .toggle-group button.on {
+    background: #2a313a;
+    color: #fff;
+  }
+  .demo-sidebar .scenario-info {
+    font-size: 11px;
+    color: #8a929b;
+    line-height: 1.5;
+    padding: 8px 10px;
+    background: #1a2028;
+    border-radius: 6px;
+    border-left: 2px solid var(--primary);
+  }
+  .demo-sidebar select {
+    width: 100%;
+    background: #1a2028;
+    border: 1px solid #2a313a;
+    color: #d5dadf;
+    padding: 7px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .sim-btn {
+    width: 100%;
+    background: #1a2028;
+    border: 1px solid #2a313a;
+    color: #d5dadf;
+    padding: 7px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    margin-bottom: 4px;
+    transition: all .12s ease;
+  }
+  .sim-btn:hover { background: #232a33; border-color: #3a4250; }
+  .sim-btn.danger { color: #f1a4a1; }
+  .sim-btn.danger:hover { border-color: #5a3a3a; }
+  .footer-note {
+    font-size: 10px;
+    color: #5a626b;
+    line-height: 1.5;
+    margin-top: 24px;
+    padding-top: 14px;
+    border-top: 1px solid #1a2028;
+  }
+  /* Main canvas — simulates Cliq admin UI */
+  .canvas {
+    padding: 0;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .product-topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--ink-2);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .product-topbar .logo {
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 16px;
+    display: flex; align-items: center; gap: 8px;
+    margin-right: 16px;
+  }
+  .product-topbar .logo-mark {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  }
+  .product-topbar .crumb { color: var(--ink-2); font-size: 14px; }
+  .product-topbar .crumb-sep { color: var(--ink-3); margin: 0 4px; }
+  .product-topbar .crumb-active { color: var(--ink); font-weight: 500; }
+  .product-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .product-topbar .search-mock {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0 12px 0 34px;
+    height: 34px;
+    line-height: 34px;
+    color: var(--ink-3);
+    font-size: 13px;
+    width: 280px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a96a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+  }
+  .product-topbar .help-icon {
+    width: 34px; height: 34px;
+    border-radius: 6px;
+    display: grid; place-items: center;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .product-topbar .help-icon:hover { background: var(--bg); }
+  .product-topbar .avatar-tb {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffb997 0%, #843b62 100%);
+    display: grid; place-items: center;
+    color: #fff; font-weight: 600; font-size: 12px;
+  }
+  .stage {
+    padding: 32px 32px 80px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+  .page-head h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .page-head p {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 13.5px;
+    max-width: 720px;
+    line-height: 1.55;
+  }
+
+  /* Source selection cards */
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 28px;
+  }
+  .source-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 16px 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .18s ease;
+    position: relative;
+  }
+  .source-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .source-card:hover .icon { transform: scale(1.04); }
+  .source-card .icon {
+    width: 52px; height: 52px;
+    margin: 0 auto 14px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    transition: transform .18s ease;
+  }
+  .source-card .icon.slack { background: linear-gradient(135deg, #4a154b 0%, #611f63 100%); color: #ecb22e; }
+  .source-card .icon.teams { background: linear-gradient(135deg, #4b53bc 0%, #6264a7 100%); }
+  .source-card .icon.gchat { background: linear-gradient(135deg, #00ac47 0%, #1aa260 100%); }
+  .source-card .icon.meta  { background: linear-gradient(135deg, #1c54ad 0%, #1877f2 100%); }
+  .source-card .name { font-weight: 600; font-size: 14px; color: var(--ink); }
+  .source-card .blurb {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* Wizard layout (replicates the existing Cliq design) */
+  .wizard {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .wizard-steps { list-style: none; padding: 0; margin: 0; }
+  .wizard-steps li {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    font-size: 13px;
+    color: var(--ink-3);
+    align-items: center;
+  }
+  .wizard-steps li.done, .wizard-steps li.current { color: var(--ink); }
+  .wizard-steps .dot {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    color: var(--ink-3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .wizard-steps li.done .dot { background: var(--green); color: #fff; }
+  .wizard-steps li.current .dot { background: var(--primary); color: #fff; }
+  .wizard-progress {
+    margin: 18px 0 8px;
+    display: flex;
+    gap: 4px;
+  }
+  .wizard-progress span {
+    height: 4px;
+    flex: 1;
+    background: var(--gray-100);
+    border-radius: 2px;
+  }
+  .wizard-progress span.fill { background: var(--primary); }
+  .wizard .help-link {
+    font-size: 12px;
+    color: var(--primary);
+    margin-top: 18px;
+    cursor: pointer;
+  }
+  .wizard-body { min-height: 360px; }
+  .wizard-body h3 { font-size: 16px; margin: 0 0 8px; }
+  .wizard-body .step-label {
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .upload-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 8px;
+    padding: 48px 24px;
+    text-align: center;
+    background: var(--gray-50);
+    margin: 24px 0;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .upload-zone:hover { border-color: var(--primary); background: var(--primary-50); }
+  .upload-zone .ic { font-size: 32px; color: var(--ink-3); margin-bottom: 8px; }
+  .upload-zone p { margin: 0; color: var(--ink-2); }
+  .upload-zone .link { color: var(--primary); }
+
+  /* ============================================
+     NEW MIGRATION-MAPPING UI (the core PRD piece)
+     ============================================ */
+  .mapping-shell {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* Summary strip — overview at top of mapping screen */
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .summary-strip > div {
+    padding: 18px 22px;
+    border-right: 1px solid var(--border);
+    background: #fff;
+    position: relative;
+  }
+  .summary-strip > div:last-child { border-right: 0; }
+  .summary-strip .num {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .summary-strip .lbl {
+    font-size: 11.5px;
+    color: var(--ink-2);
+    letter-spacing: 0.02em;
+    margin-top: 6px;
+    font-weight: 500;
+  }
+  .summary-strip .badge-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* Domain-verification CTA banner */
+  .verify-cta {
+    background: linear-gradient(135deg, #fef9e7 0%, #fdf3d4 100%);
+    border-bottom: 1px solid #f0d977;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+  .verify-cta .ic { font-size: 16px; }
+  .verify-cta strong { color: #8a6300; }
+  .verify-cta .verify-btn {
+    margin-left: auto;
+    background: #8a6300;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .verify-cta .verify-btn:hover { background: #6f4f00; }
+  .verify-cta .later-btn {
+    background: transparent;
+    border: 1px solid #d4b860;
+    color: #8a6300;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* Verification in progress banner */
+  .verify-progress {
+    background: linear-gradient(135deg, #e8f4fc 0%, #d8ecf8 100%);
+    border-bottom: 1px solid #b8d8ec;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: #0f5a8a;
+  }
+  .verify-progress .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid #b8d8ec;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Category sections */
+  .category {
+    border-bottom: 1px solid var(--border);
+  }
+  .category:last-child { border-bottom: 0; }
+  .cat-head {
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    background: #fff;
+    transition: background .12s ease;
+  }
+  .cat-head:hover { background: #fafbfc; }
+  .cat-head .chevron {
+    width: 18px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 11px;
+    transition: transform .15s ease;
+  }
+  .category.collapsed .chevron { transform: rotate(-90deg); }
+  .cat-head .icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .icon.verified { background: var(--green-50); color: var(--green); }
+  .icon.unverified { background: var(--amber-50); color: var(--amber); }
+  .icon.cantinvite { background: var(--red-50); color: var(--red); }
+  .cat-title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .cat-sub {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+  .cat-count {
+    font-size: 11px;
+    color: var(--ink-2);
+    background: var(--gray-50);
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .cat-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cat-body {
+    border-top: 1px solid var(--border);
+    background: #fcfdfe;
+  }
+  .category.collapsed .cat-body { display: none; }
+
+  /* Toolbar */
+  .toolbar {
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+  }
+  .toolbar .search {
+    flex: 1;
+    max-width: 360px;
+    position: relative;
+  }
+  .toolbar .search input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px 7px 30px;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .12s ease;
+  }
+  .toolbar .search input:focus { border-color: var(--primary); }
+  .toolbar .search::before {
+    content: '🔍';
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    opacity: 0.5;
+  }
+  .toolbar .selection-pill {
+    font-size: 11px;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    padding: 4px 9px;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+  .toolbar .right { margin-left: auto; display: flex; gap: 8px; }
+
+  /* Buttons */
+  .btn {
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-family: inherit;
+    transition: all .12s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-700); }
+  .btn-ghost { background: transparent; border-color: var(--border-strong); color: var(--ink-2); }
+  .btn-ghost:hover:not(:disabled) { background: var(--gray-50); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger-ghost { background: transparent; border-color: var(--red); color: var(--red); }
+  .btn-small { padding: 4px 10px; font-size: 11px; }
+  .btn-link { background: transparent; color: var(--primary); border: none; padding: 4px 6px; }
+  .btn-link:hover { text-decoration: underline; }
+
+  /* User list */
+  .user-list {
+    max-height: 380px;
+    overflow-y: auto;
+  }
+  .user-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    border-bottom: 1px solid #f0f2f5;
+    transition: background .1s ease;
+  }
+  .user-row:hover { background: #f7f9fb; }
+  .user-row:last-child { border-bottom: 0; }
+  .user-row input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+  .user-row input[type="checkbox"]:disabled { cursor: not-allowed; }
+  .user-id {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .avatar.gray { background: #8a929b; }
+  .avatar.purple { background: var(--purple); }
+  .avatar.teal { background: var(--teal); }
+  .avatar.amber { background: var(--amber); }
+  .user-meta { min-width: 0; }
+  .user-name {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .user-email {
+    font-size: 11px;
+    color: var(--ink-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pill {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .pill-green { background: var(--green-50); color: var(--green); }
+  .pill-amber { background: var(--amber-50); color: var(--amber); }
+  .pill-red { background: var(--red-50); color: var(--red); }
+  .pill-gray { background: var(--gray-50); color: var(--ink-2); }
+  .pill-blue { background: var(--primary-50); color: var(--primary-700); }
+
+  .empty {
+    padding: 36px 24px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+  .empty .big { font-size: 24px; margin-bottom: 6px; }
+
+  /* Sub-categories (under can't-invite) */
+  .subcat {
+    padding: 10px 24px;
+    background: #fafbfc;
+    border-top: 1px solid #eef0f3;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .subcat:first-child { border-top: 0; }
+  .subcat .ct {
+    background: #fff;
+    border: 1px solid var(--border);
+    padding: 1px 7px;
+    border-radius: 8px;
+    color: var(--ink-2);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .info-note {
+    background: #f4f8fd;
+    border: 1px solid #d4e6f7;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 12px 24px;
+    font-size: 12px;
+    color: #2a4d72;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .info-note .ic { font-size: 14px; flex-shrink: 0; line-height: 1.2; }
+  .info-note strong { color: #163554; }
+
+  .warn-note {
+    background: var(--amber-50);
+    border: 1px solid #f0d977;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 12px 24px;
+    font-size: 12px;
+    color: #6f4f00;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .warn-note .ic { font-size: 14px; flex-shrink: 0; line-height: 1.2; }
+
+  /* ===== REFINED: Domain-grouped user lists with clear visual hierarchy ===== */
+
+  /* Each category gets a more refined, less heavy shell */
+  .category-block {
+    margin-top: 20px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .category-block:first-of-type { margin-top: 0; }
+
+  /* Category strip — slimmer, more elegant */
+  .cat-strip {
+    padding: 14px 20px 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    background: #fff;
+    transition: background .15s;
+  }
+  .cat-strip:hover { background: #fafbfc; }
+  .cat-strip::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .cat-strip.green::before { background: var(--green); }
+  .cat-strip.amber::before { background: var(--amber); }
+  .cat-strip.red::before   { background: var(--red); }
+  .cat-strip .cs-chevron {
+    color: var(--ink-3);
+    font-size: 11px;
+    width: 14px;
+    transition: transform .15s;
+    flex-shrink: 0;
+  }
+  .category-block.collapsed .cs-chevron { transform: rotate(-90deg); }
+  .cat-strip .cs-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: grid; place-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .cat-strip.green .cs-icon { background: var(--green-50); color: var(--green); }
+  .cat-strip.amber .cs-icon { background: var(--amber-50); color: var(--amber); }
+  .cat-strip.red   .cs-icon { background: var(--red-50);   color: var(--red); }
+  .cat-strip .cs-text { flex: 1; min-width: 0; }
+  .cat-strip .cs-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    line-height: 1.3;
+  }
+  .cat-strip .cs-sub {
+    font-size: 12px;
+    color: var(--ink-2);
+    margin-top: 2px;
+    line-height: 1.45;
+  }
+  .cat-strip .cs-counter {
+    font-size: 12px;
+    color: var(--ink-2);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .cat-strip .cs-counter strong { color: var(--ink); font-weight: 600; }
+
+  /* Body */
+  .cat-content { padding: 0; }
+  .category-block.collapsed .cat-content { display: none; }
+
+  /* Category toolbar — search + select-all */
+  .cat-toolbar {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: #fafbfc;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cat-toolbar .ct-search {
+    flex: 1;
+    max-width: 360px;
+    position: relative;
+  }
+  .cat-toolbar .ct-search input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px 7px 32px;
+    font-family: inherit;
+    font-size: 12.5px;
+    outline: none;
+    background: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%238a96a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 10px center;
+    transition: border-color .12s;
+  }
+  .cat-toolbar .ct-search input:focus { border-color: var(--primary); }
+  .cat-toolbar .ct-master-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: auto;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    cursor: pointer;
+    user-select: none;
+  }
+  .cat-toolbar .ct-master-toggle input { width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer; margin: 0; }
+
+  /* DOMAIN GROUP */
+  .domain-group { border-bottom: 1px solid var(--border); }
+  .domain-group:last-child { border-bottom: 0; }
+
+  .domain-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: #fcfdfe;
+    cursor: pointer;
+    user-select: none;
+    transition: background .12s;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  .domain-header:hover { background: #f5f7fa; }
+  .domain-group.collapsed .domain-header { border-bottom: 0; }
+  .domain-header .dg-chevron {
+    color: var(--ink-3);
+    font-size: 10px;
+    width: 10px;
+    transition: transform .15s;
+  }
+  .domain-group.collapsed .dg-chevron { transform: rotate(-90deg); }
+  .domain-header .dg-check {
+    width: 15px; height: 15px;
+    accent-color: var(--primary);
+    cursor: pointer;
+    margin: 0;
+  }
+  .domain-header .dg-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+  .domain-header .dg-meta {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-left: 4px;
+  }
+  .domain-header .dg-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .domain-header .dg-selected-pill {
+    font-size: 11px;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .domain-header .dg-selected-pill strong { color: var(--primary-700); font-weight: 600; }
+  .domain-header.unverified-style { background: #fffaf0; }
+  .domain-header.unverified-style:hover { background: #fdf3e2; }
+  .domain-header .dg-verify-link {
+    font-size: 11px;
+    color: var(--amber);
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid #e8c875;
+    padding: 3px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .12s;
+  }
+  .domain-header .dg-verify-link:hover { background: var(--amber); color: #fff; border-color: var(--amber); }
+
+  /* User rows under domain — clean, indented */
+  .domain-users { padding: 4px 0; max-height: 320px; overflow-y: auto; }
+  .domain-group.collapsed .domain-users { display: none; }
+  .domain-users .user-row {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 20px 7px 50px;
+    border: none;
+    transition: background .1s;
+  }
+  .domain-users .user-row:hover { background: #f7f9fb; }
+  .domain-users .user-row.unselected { opacity: 0.5; }
+  .domain-users .user-row.unselected .user-action-chip { background: var(--gray-50); color: var(--ink-3); }
+  .domain-users .user-row.unselected .user-action-chip .dot { background: var(--ink-3); }
+
+  /* Per-row retry in can't-invite — hidden by default, revealed on row hover for a calmer default state */
+  .domain-users .user-row .row-retry {
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    color: var(--ink-2);
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity .12s, background .12s, color .12s, border-color .12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+  }
+  .domain-users .user-row:hover .row-retry,
+  .domain-users .user-row:focus-within .row-retry {
+    opacity: 1;
+  }
+  .domain-users .user-row .row-retry:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  /* "Show more" expansion */
+  .domain-show-more {
+    text-align: center;
+    padding: 8px 20px;
+    font-size: 11.5px;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 500;
+    background: #fafbfc;
+    border-top: 1px dashed var(--border);
+  }
+  .domain-show-more:hover { text-decoration: underline; background: #f0f4f7; }
+
+  /* CATEGORY FOOTER — where the primary action CTA lives (refined) */
+  .cat-footer {
+    padding: 14px 20px;
+    background: #fafbfc;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cat-footer .cf-info {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    flex: 1;
+    line-height: 1.5;
+  }
+  .cat-footer .cf-info strong { color: var(--ink); font-weight: 600; }
+
+  /* The refined per-category action CTA — smaller, well-proportioned */
+  .cas-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    color: #fff;
+    transition: all .15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .cas-cta:hover { filter: brightness(1.06); }
+  .cas-cta:active { transform: translateY(1px); }
+  .cas-cta.green { background: var(--green); }
+  .cas-cta.amber { background: var(--amber); }
+  .cas-cta.red   { background: var(--red); }
+  .cas-cta:disabled {
+    background: var(--gray-100) !important;
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+  .cas-cta .cta-count { font-weight: 700; }
+
+  /* While the per-category action is committing (loader/ETA state) */
+  .cas-cta.committing {
+    background: #455a64 !important;
+    color: #fff !important;
+    cursor: progress;
+    opacity: 1 !important;
+  }
+  .cas-cta.committing .cta-eta {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    padding-left: 4px;
+    border-left: 1px solid rgba(255,255,255,0.2);
+    margin-left: 4px;
+  }
+  /* When the category has been committed (done state) */
+  .cas-cta.committed {
+    background: #f0f7ff !important;
+    color: #1976d2 !important;
+    border: 1px solid #bbd9f5;
+    cursor: default;
+    pointer-events: none;
+    opacity: 1 !important;
+    font-weight: 600;
+  }
+
+  /* Loader spinner used inside CTAs */
+  .loader-spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 2px;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ===== Recommended-action card (in unverified category) =====
+     A single cohesive panel: WHY verify (3 points) + HOW verify (providers + CTA). */
+  .recommend-card {
+    margin: 16px 20px 4px;
+    background: linear-gradient(180deg, #fffaf0 0%, #fffbf3 100%);
+    border: 1px solid #f0d977;
+    border-left: 3px solid var(--amber);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .recommend-card .rc-head {
+    padding: 12px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f0d977;
+  }
+  .recommend-card .rc-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #fff;
+    background: var(--amber);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .recommend-card .rc-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #5a3f00;
+  }
+  .recommend-card .rc-body {
+    padding: 14px 16px 8px;
+  }
+  .recommend-card .rc-point {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: #6f4f00;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  .recommend-card .rc-point:last-child { margin-bottom: 6px; }
+  .recommend-card .rc-point strong { color: #5a3f00; font-weight: 600; }
+  .recommend-card .rc-point-num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--amber);
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .recommend-card .rc-action {
+    padding: 12px 16px;
+    background: rgba(240,217,119,0.18);
+    border-top: 1px solid #f0d977;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .recommend-card .rc-providers {
+    flex: 1;
+    font-size: 11.5px;
+    color: #6f4f00;
+    line-height: 1.6;
+  }
+  .recommend-card .rc-providers .provider-chip {
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #e8c875;
+    border-radius: 4px;
+    padding: 1px 7px;
+    margin: 0 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: #5a3f00;
+    font-weight: 600;
+  }
+  .recommend-card .rc-cta {
+    background: var(--amber);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+    transition: filter .12s;
+  }
+  .recommend-card .rc-cta:hover { filter: brightness(0.92); }
+
+  /* Keep old class around in case anything else uses it — but no longer in mapping */
+  .inline-warn-callout {
+    margin: 14px 20px 0;
+    padding: 14px 16px;
+    border-left: 3px solid var(--amber);
+    background: #fffaf0;
+    border-radius: 0 6px 6px 0;
+    font-size: 12.5px;
+    color: #6f4f00;
+    line-height: 1.55;
+  }
+
+  /* Category toolbar — search and select-all-in-category */
+  .cat-toolbar {
+    padding: 12px 20px 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: #fafbfc;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cat-toolbar .ct-search {
+    flex: 1;
+    max-width: 320px;
+    position: relative;
+  }
+  .cat-toolbar .ct-search input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px 7px 32px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a96a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 10px center;
+  }
+  .cat-toolbar .ct-search input:focus { border-color: var(--primary); }
+  .cat-toolbar .ct-master-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--ink-2);
+    cursor: pointer;
+    user-select: none;
+  }
+  .cat-toolbar .ct-master-toggle input { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+  .cat-toolbar .ct-master-toggle strong { color: var(--ink); font-weight: 600; }
+
+  /* DOMAIN GROUP — the new hierarchy level between category and user */
+  .domain-group {
+    border-bottom: 1px solid var(--border);
+  }
+  .domain-group:last-child { border-bottom: 0; }
+
+  .domain-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px 10px 24px;
+    background: #f4f7fa;
+    cursor: pointer;
+    user-select: none;
+    transition: background .12s;
+  }
+  .domain-header:hover { background: #ecf1f5; }
+  .domain-header .dg-chevron {
+    color: var(--ink-3);
+    font-size: 11px;
+    width: 12px;
+    transition: transform .15s;
+  }
+  .domain-group.collapsed .dg-chevron { transform: rotate(-90deg); }
+  .domain-header .dg-check {
+    width: 16px; height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+  .domain-header .dg-icon {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    background: #fff;
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    font-size: 11px;
+    color: var(--ink-2);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+  .domain-header .dg-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .domain-header .dg-meta {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-left: 6px;
+  }
+  .domain-header .dg-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .domain-header .dg-selected-pill {
+    font-size: 11px;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .domain-header.unverified-style {
+    background: linear-gradient(90deg, #fdf3e2 0%, #fdf6e8 100%);
+  }
+  .domain-header.unverified-style:hover {
+    background: linear-gradient(90deg, #fceac6 0%, #fdf3e2 100%);
+  }
+  .domain-header .dg-verify-link {
+    font-size: 11.5px;
+    color: var(--amber);
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--amber);
+    background: #fff;
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .domain-header .dg-verify-link:hover { background: var(--amber); color: #fff; }
+
+  /* User rows under a domain group — indented to show hierarchy */
+  .domain-users {
+    padding: 4px 0;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .domain-group.collapsed .domain-users { display: none; }
+  .domain-users .user-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px 8px 56px;
+    border: none;
+    transition: background .1s ease;
+  }
+  .domain-users .user-row:hover { background: #f7f9fb; }
+  .domain-users .user-row.unselected { opacity: 0.5; }
+  .domain-users .user-row.unselected .user-action-chip { background: var(--gray-50); color: var(--ink-3); }
+  .domain-users .user-row.unselected .user-action-chip .dot { background: var(--ink-3); }
+
+  /* "Show more / hide" for very large domains (scaled to 10k+) */
+  .domain-show-more {
+    text-align: center;
+    padding: 8px 20px 12px 56px;
+    font-size: 11.5px;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 500;
+    border-top: 1px dashed var(--border);
+    background: #fafbfc;
+  }
+  .domain-show-more:hover { text-decoration: underline; }
+
+  /* Footer of mapping */
+  .map-footer {
+    margin-top: 24px;
+    padding: 18px 22px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 -2px 12px rgba(20,30,50,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    bottom: 16px;
+  }
+  .map-footer .summary {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .map-footer .summary strong {
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .map-footer .btn-primary {
+    padding: 9px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .map-footer .btn-ghost {
+    padding: 9px 16px;
+  }
+
+  /* ====== NEW: action-clarity components ====== */
+
+  /* Per-user action chip — shows on the right of each user row */
+  .user-action-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .user-action-chip.add { background: var(--green-50); color: var(--green); }
+  .user-action-chip.invite { background: var(--amber-50); color: var(--amber); }
+  .user-action-chip.skip { background: var(--gray-50); color: var(--ink-3); }
+  .user-action-chip.locked { background: var(--primary-50); color: var(--primary-700); }
+  .user-action-chip.fail { background: var(--red-50); color: var(--red); font-weight: 600; }
+  .user-action-chip .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+  .user-action-chip.add .dot { background: var(--green); }
+  .user-action-chip.invite .dot { background: var(--amber); }
+  .user-action-chip.skip .dot { background: var(--ink-3); }
+  .user-action-chip.locked .dot { background: var(--primary); }
+  .user-action-chip.fail .dot { background: var(--red); }
+
+  .user-row.unselected { opacity: 0.55; }
+  .user-row.unselected .user-action-chip { background: var(--gray-50); color: var(--ink-3); }
+  .user-row.unselected .user-action-chip .dot { background: var(--ink-3); }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 22, 35, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 10px;
+    width: 520px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+  }
+  .modal-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .modal-head h3 { margin: 0; font-size: 15px; }
+  .modal-head .close {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-3);
+    font-size: 18px;
+  }
+  .modal-body { padding: 20px 22px; }
+  .modal-body p { color: var(--ink-2); font-size: 13px; }
+  .modal-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    background: #fafbfc;
+  }
+  .steps-list {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0;
+    counter-reset: step;
+  }
+  .steps-list li {
+    counter-increment: step;
+    padding: 10px 12px 10px 38px;
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--ink-2);
+    position: relative;
+  }
+  .steps-list li::before {
+    content: counter(step);
+    position: absolute;
+    left: 12px;
+    top: 10px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  /* ===== Source-specific export pages — Slack / Teams / Google Chat / Meta ===== */
+  .source-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #fafbfd 0%, #f4f7fb 100%);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 18px;
+  }
+  .source-brand .sb-logo {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+  }
+  .source-brand .sb-logo.slack  { background: linear-gradient(135deg, #4a154b 0%, #611f63 100%); color: #ecb22e; }
+  .source-brand .sb-logo.teams  { background: linear-gradient(135deg, #4b53bc 0%, #6264a7 100%); color: #fff; }
+  .source-brand .sb-logo.gchat  { background: linear-gradient(135deg, #00ac47 0%, #1aa260 100%); color: #fff; }
+  .source-brand .sb-logo.meta   { background: linear-gradient(135deg, #1c54ad 0%, #1877f2 100%); color: #fff; }
+  .source-brand .sb-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .source-brand .sb-tag {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+
+  .source-step-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .source-step-card .ssc-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    display: grid; place-items: center;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .source-step-card .ssc-body { flex: 1; min-width: 0; }
+  .source-step-card .ssc-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .source-step-card .ssc-desc {
+    font-size: 11.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .source-step-card .ssc-desc strong { color: var(--ink); }
+  .source-step-card .ssc-fields {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .source-step-card .ssc-field {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+  .source-step-card .ssc-field .lbl {
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .source-step-card .ssc-code {
+    margin-top: 10px;
+    background: #1a2027;
+    color: #e6e8eb;
+    border-radius: 5px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    line-height: 1.55;
+    overflow-x: auto;
+    position: relative;
+  }
+  .source-step-card .ssc-code .copy-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(255,255,255,0.08);
+    color: #cdd2da;
+    border: none;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .source-step-card .ssc-code .copy-btn:hover { background: rgba(255,255,255,0.16); }
+  .source-step-card .ssc-code .kw { color: #80b4f7; }
+  .source-step-card .ssc-code .str { color: #a3e9a4; }
+  .source-step-card .ssc-code .cm { color: #7a828a; font-style: italic; }
+  .source-step-card .ssc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    margin-top: 10px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .source-step-card .ssc-btn.ghost {
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+  }
+  .source-step-card .ssc-btn:hover { opacity: 0.92; }
+  .source-link-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--primary);
+    font-size: 11px;
+    text-decoration: none;
+    font-weight: 500;
+    margin-top: 6px;
+  }
+  .source-link-hint:hover { text-decoration: underline; }
+  .domain-row {
+    display: flex;
+    align-items: center;
+    background: var(--gray-50);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+    gap: 10px;
+  }
+  .domain-row .name { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink); }
+
+  /* Progress (migration) */
+  .progress-shell {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+  }
+  .big-spinner {
+    width: 56px; height: 56px;
+    border: 4px solid var(--gray-100);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    margin: 0 auto 18px;
+    animation: spin 1s linear infinite;
+  }
+  .progress-shell h3 { margin: 0 0 6px; font-size: 18px; }
+  .progress-shell p { color: var(--ink-2); }
+  .progress-bar {
+    height: 8px;
+    background: var(--gray-100);
+    border-radius: 4px;
+    margin: 24px auto 8px;
+    max-width: 480px;
+    overflow: hidden;
+  }
+  .progress-bar div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--teal));
+    border-radius: 4px;
+    transition: width .4s ease;
+  }
+  .progress-meta {
+    font-size: 12px;
+    color: var(--ink-3);
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+  }
+  .stages-list {
+    text-align: left;
+    max-width: 460px;
+    margin: 28px auto 0;
+    list-style: none;
+    padding: 0;
+  }
+  .stages-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+  .stages-list li.done { color: var(--ink); }
+  .stages-list li.now { color: var(--ink); font-weight: 500; }
+  .stages-list .mark {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: var(--ink-3);
+    flex-shrink: 0;
+  }
+  .stages-list li.done .mark { background: var(--green); color: #fff; }
+  .stages-list li.now .mark {
+    background: var(--primary); color: #fff;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(26,143,227,0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(26,143,227,0); }
+  }
+
+  /* Error state */
+  .error-shell {
+    background: #fff;
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .error-shell h3 { color: var(--red); margin: 0 0 6px; font-size: 15px; }
+  .error-shell .err-list {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .err-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+    font-size: 12px;
+  }
+  .err-row:last-child { border-bottom: 0; }
+  .err-row .err-status {
+    margin-left: auto;
+    font-size: 11px;
+  }
+  .err-row.retry-success { background: #f4faf7; }
+  .err-row.retry-success .err-status { color: var(--green); }
+  .err-row.failing { background: #fdf5f4; }
+  .err-row.failing .err-status { color: var(--red); }
+
+  /* Cliq dashboard mock (for post-migration banners) */
+  .dash-mock {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .dash-banner {
+    background: linear-gradient(90deg, #e8f4fc, #f4f8fd);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+  .dash-banner.during { background: linear-gradient(90deg, #fef9e7, #fdf6e3); }
+  .dash-banner.after { background: linear-gradient(90deg, #e8f4fc, #ecf6fd); }
+  .dash-banner .ic { font-size: 16px; }
+  .dash-banner .dismiss {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-3);
+    font-size: 14px;
+  }
+  .dash-area {
+    padding: 20px;
+    min-height: 260px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+  }
+  .dash-side {
+    background: var(--gray-50);
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .dash-side .item {
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--ink-2);
+    margin-bottom: 2px;
+    cursor: pointer;
+  }
+  .dash-side .item:hover { background: #fff; }
+  .dash-side .item.active { background: var(--primary-50); color: var(--primary-700); font-weight: 500; }
+  .dash-main {
+    background: var(--gray-50);
+    border-radius: 6px;
+    padding: 18px;
+  }
+  .chat-stub {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .chat-stub:last-child { border-bottom: 0; }
+  .chat-stub .name { font-weight: 600; font-size: 12px; }
+  .chat-stub .time { font-size: 10px; color: var(--ink-3); }
+  .chat-stub .msg { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+  .skel {
+    background: linear-gradient(90deg, #eef0f3 25%, #f7f8fa 50%, #eef0f3 75%);
+    background-size: 200% 100%;
+    animation: skeleton 1.4s linear infinite;
+    border-radius: 4px;
+  }
+  @keyframes skeleton {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Audit log panel */
+  .audit-shell {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .audit-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .audit-head h3 { margin: 0; font-size: 14px; }
+  .audit-row {
+    display: grid;
+    grid-template-columns: 140px 100px 1fr 90px;
+    gap: 14px;
+    padding: 10px 20px;
+    border-bottom: 1px solid #f0f2f5;
+    font-size: 12px;
+    align-items: center;
+  }
+  .audit-row:last-child { border-bottom: 0; }
+  .audit-row.header {
+    background: #fafbfc;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  .audit-row .when { color: var(--ink-3); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .audit-row .who { color: var(--ink); }
+  .audit-row .what { color: var(--ink-2); }
+
+  /* ===== DOMAINS VIEW (mirrors existing Cliq Domain Verification feature) ===== */
+  .return-banner {
+    background: linear-gradient(90deg, #e3f2fd 0%, #f0f7ff 100%);
+    border: 1px solid #bbd9f5;
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .return-banner .rb-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--primary);
+    display: grid; place-items: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(33,150,243,0.15);
+  }
+  .return-banner .rb-text { flex: 1; font-size: 13px; color: #163554; }
+  .return-banner .rb-text strong { color: var(--ink); }
+  .return-banner button {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .return-banner button:hover { background: var(--primary-700); }
+
+  .domains-page {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .domains-toolbar {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .domains-toolbar input {
+    flex: 1;
+    max-width: 320px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px 7px 32px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a96a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 10px center;
+  }
+  .domains-toolbar .toolbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+  .domains-table-head {
+    display: grid;
+    grid-template-columns: 1fr 140px 160px 100px;
+    gap: 16px;
+    padding: 12px 20px;
+    background: #fafbfc;
+    font-size: 10px;
+    color: var(--ink-3);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+  .domain-row-full {
+    display: grid;
+    grid-template-columns: 1fr 140px 160px 100px;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    font-size: 13px;
+  }
+  .domain-row-full:last-child { border-bottom: 0; }
+  .domain-row-full:hover { background: #fafbfc; }
+  .domain-row-full .dname { font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+  .domain-row-full .dname .added { font-size: 10.5px; color: var(--ink-3); display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-weight: 400; }
+  .domain-row-full .dstatus { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+  .domain-row-full .dstatus.verified { color: var(--green); }
+  .domain-row-full .dstatus.unverified { color: var(--amber); }
+  .domain-row-full .dstatus .ico { font-size: 13px; }
+  .domain-row-full .verify-btn-sm {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .domain-row-full .verify-btn-sm:hover { background: var(--primary-700); }
+  .domain-row-full.in-progress { background: #fff8e6; }
+
+  .verify-wizard {
+    padding: 22px 24px;
+    background: #fafbfd;
+    border-top: 1px solid var(--border);
+  }
+  .verify-wizard h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    color: var(--ink);
+  }
+  .verify-wizard p { font-size: 12px; color: var(--ink-2); margin: 0 0 16px; }
+  .vw-step {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .vw-step .vw-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    display: grid; place-items: center;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .vw-step .vw-content { flex: 1; }
+  .vw-step .vw-title { font-weight: 600; font-size: 13px; color: var(--ink); }
+  .vw-step .vw-desc { font-size: 11.5px; color: var(--ink-2); margin-top: 4px; }
+  .vw-step .vw-record {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .vw-step .vw-record .field { flex: 1; }
+  .vw-step .vw-record .copy {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    color: var(--ink-2);
+    font-family: inherit;
+  }
+  .vw-providers {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0 14px;
+  }
+  .vw-provider {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 500;
+    transition: all .12s;
+  }
+  .vw-provider:hover { border-color: var(--primary); background: var(--primary-50); color: var(--primary-700); }
+  .vw-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  /* Confirmation summary */
+  .confirm-shell {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .confirm-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .confirm-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .confirm-card .label {
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .confirm-card .v {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .confirm-card .v small { font-size: 11px; color: var(--ink-3); font-weight: 500; }
+
+  /* Mini diagram for "what happens in backend" */
+  .backend-diagram {
+    margin-top: 16px;
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    font-size: 11px;
+    color: var(--ink-2);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.7;
+  }
+  .backend-diagram .step-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .backend-diagram .arrow { color: var(--primary); }
+  .backend-diagram .verb { color: var(--purple); font-weight: 600; }
+  .backend-diagram .target { color: var(--teal); }
+
+  /* responsive */
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 250px 1fr; }
+  }
+  @media (max-width: 880px) {
+    .app { grid-template-columns: 1fr; }
+    .demo-sidebar { position: relative; height: auto; }
+    .stage { padding: 20px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============================================
+       DEMO SIDEBAR (controls the prototype)
+       ============================================ -->
+  <aside class="demo-sidebar">
+    <h1>Cliq Migration Flow</h1>
+    <span class="tag">Prototype · v2.0</span>
+
+    <div class="demo-section">
+      <div class="label">Flow Step</div>
+      <ul class="step-nav" id="stepNav">
+        <li data-screen="source"><span class="num">1</span> Source Selection</li>
+        <li data-screen="export"><span class="num">2</span> Export from source</li>
+        <li data-screen="upload"><span class="num">3</span> Upload file</li>
+        <li data-screen="mapping" class="active"><span class="num">4</span> Choose users <small>★</small></li>
+        <li data-screen="domains" style="background:#fafbfc; border-left:2px solid var(--primary)"><span class="num" style="background:var(--primary-50);color:var(--primary)">↗</span> Domains (side-step)</li>
+        <li data-screen="status"><span class="num">5</span> Migration status</li>
+        <li data-screen="dashboard"><span class="num">6</span> Post-migration banners</li>
+      </ul>
+    </div>
+
+    <div class="demo-section">
+      <div class="label">Scenario</div>
+      <div class="toggle-group" id="scenarioToggle">
+        <button data-scenario="no-org" class="on">No Org · No App</button>
+        <button data-scenario="has-org">Has Org · No App</button>
+      </div>
+      <div class="scenario-info" id="scenarioInfo">
+        Fresh customer. Cliq creates the org and adds verified-domain users directly. Unverified domain users need explicit invites.
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <div class="label">Simulate Edge Case</div>
+      <button class="sim-btn" data-sim="empty">Empty category</button>
+      <button class="sim-btn" data-sim="alreadyInvited">Already-invited users (locked)</button>
+      <button class="sim-btn" data-sim="refresh">Refresh “Can't invite” bucket</button>
+      <button class="sim-btn" data-sim="verifying">Domain verification in progress</button>
+      <button class="sim-btn" data-sim="verified">Domain just got verified mid-flow</button>
+      <button class="sim-btn" data-sim="reset">↻ Reset everything</button>
+    </div>
+
+  </aside>
+
+  <!-- ============================================
+       MAIN CANVAS (the simulated product UI)
+       ============================================ -->
+  <main class="canvas">
+    <div class="product-topbar">
+      <div class="logo"><span class="logo-mark">C</span> Cliq</div>
+      <span class="crumb">Admin Panel</span>
+      <span class="crumb-sep">›</span>
+      <span class="crumb">Data Administration</span>
+      <span class="crumb-sep">›</span>
+      <span class="crumb-active" id="crumbActive">Import External Data</span>
+      <div class="right">
+        <span class="search-mock">Search (ctrl + k)</span>
+        <div class="help-icon" title="Help">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="avatar-tb">AN</div>
+      </div>
+    </div>
+
+    <div class="stage">
+
+      <!-- SCREEN 1: SOURCE SELECTION -->
+      <section class="screen" data-screen="source">
+        <div class="page-head">
+          <div>
+            <h2>Import External Data</h2>
+            <p>Move your team's history from another collaboration tool into Cliq. Choose where you're coming from to begin.</p>
+          </div>
+        </div>
+        <div class="source-grid">
+          <div class="source-card" data-source="slack" onclick="goSource('slack')">
+            <div class="icon slack">#</div>
+            <div class="name">Slack</div>
+            <div class="blurb">Workspace export · all channels, DMs, files</div>
+          </div>
+          <div class="source-card" data-source="teams" onclick="goSource('teams')">
+            <div class="icon teams">T</div>
+            <div class="name">Microsoft Teams</div>
+            <div class="blurb">Azure app + Graph API export script</div>
+          </div>
+          <div class="source-card" data-source="gchat" onclick="goSource('gchat')">
+            <div class="icon gchat">G</div>
+            <div class="name">Google Chat</div>
+            <div class="blurb">Google Workspace · Data Export</div>
+          </div>
+          <div class="source-card" data-source="meta" onclick="goSource('meta')">
+            <div class="icon meta">W</div>
+            <div class="name">Meta Workplace</div>
+            <div class="blurb">Custom integration + access token</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: EXPORT (source-specific instructions) -->
+      <section class="screen" data-screen="export">
+        <div class="page-head">
+          <div>
+            <h2 id="exportTitle">Export data — users, channels and messages</h2>
+            <p id="exportSubtitle">Follow the steps from your source platform. We've kept the on-ramp identical to what admins already know.</p>
+          </div>
+          <button class="btn btn-primary" onclick="goScreen('upload')">Export done →</button>
+        </div>
+        <div class="wizard">
+          <div>
+            <ul class="wizard-steps">
+              <li class="current"><span class="dot">1</span> Export from source</li>
+              <li><span class="dot">2</span> Upload export file</li>
+              <li><span class="dot">3</span> Choose users</li>
+              <li><span class="dot">4</span> Start migration</li>
+            </ul>
+            <div class="wizard-progress">
+              <span class="fill"></span><span></span><span></span><span></span>
+            </div>
+            <div class="help-link">⌕ Need help with export?</div>
+          </div>
+          <div class="wizard-body" id="exportBody">
+            <!-- filled per source by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 3: UPLOAD -->
+      <section class="screen" data-screen="upload">
+        <div class="page-head">
+          <div>
+            <h2>Upload the exported file — time to cut some slack!</h2>
+            <p>We'll inspect the file and sort every user we find into three groups: ready to add, needs an invite, or can't be added right now.</p>
+          </div>
+        </div>
+        <div class="wizard">
+          <div>
+            <ul class="wizard-steps">
+              <li class="done"><span class="dot">✓</span> Export from source</li>
+              <li class="current"><span class="dot">2</span> Upload export file</li>
+              <li><span class="dot">3</span> Choose users</li>
+              <li><span class="dot">4</span> Start migration</li>
+            </ul>
+            <div class="wizard-progress">
+              <span class="fill"></span><span class="fill"></span><span></span><span></span>
+            </div>
+            <div class="help-link">⌕ What's inside the file?</div>
+          </div>
+          <div class="wizard-body">
+            <div class="upload-zone" onclick="goScreen('mapping')">
+              <div class="ic">⬆</div>
+              <p><strong>Drag &amp; Drop file</strong> &nbsp; or &nbsp; <span class="link">Browse your desktop</span></p>
+              <p style="font-size: 11px; margin-top: 6px; color: var(--ink-3);">Click anywhere here to simulate upload &amp; advance.</p>
+            </div>
+            <div class="info-note">
+              <span class="ic">ℹ</span>
+              <div>
+                <strong>What happens next.</strong> We scan the file, identify users by email, then sort them into three buckets — directly addable, invite-needed, and can't-invite. You stay in control of who gets pulled in.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 4: MAPPING (the core of this PRD) -->
+      <section class="screen active" data-screen="mapping">
+        <div class="page-head">
+          <div>
+            <h2>Choose which users to bring into Cliq</h2>
+            <p>We found <strong id="totalCount">187 users</strong> across <strong id="totalDomains">4 domains</strong> in your export. Group them, search, and pick exactly who joins.</p>
+          </div>
+        </div>
+
+        <div class="mapping-shell" id="mappingShell">
+
+          <!-- Summary strip: live counts of what each action will do (forward-looking labels) -->
+          <div class="summary-strip" id="summaryStrip">
+            <div>
+              <div class="num" id="ctTotal">187</div>
+              <div class="lbl" id="lblTotal">Total in export</div>
+            </div>
+            <div>
+              <div class="num" id="ctVerified"><span class="badge-dot" style="background:var(--green)"></span>142</div>
+              <div class="lbl" id="lblVerified">Selected to add directly</div>
+            </div>
+            <div>
+              <div class="num" id="ctUnverified"><span class="badge-dot" style="background:var(--amber)"></span>31</div>
+              <div class="lbl" id="lblUnverified">Selected to invite</div>
+            </div>
+            <div>
+              <div class="num" id="ctCant"><span class="badge-dot" style="background:var(--red)"></span>14</div>
+              <div class="lbl" id="lblCant">Can't invite</div>
+            </div>
+          </div>
+
+          <!-- ============================================
+               CATEGORY 1: VERIFIED DOMAINS
+               ============================================ -->
+          <div class="category-block" id="catVerified">
+            <div class="cat-strip green" onclick="toggleCatBlock('catVerified', event)">
+              <span class="cs-chevron">▾</span>
+              <div class="cs-icon">✓</div>
+              <div class="cs-text">
+                <div class="cs-title" id="verifiedTitle">Verified domains — will be added directly</div>
+                <div class="cs-sub" id="verifiedSub">These users can access Cliq from the email link the moment migration starts — no acceptance needed, they're already in the org.</div>
+              </div>
+              <div class="cs-counter" id="csCounterVerified"><strong>142</strong> users · 2 domains</div>
+            </div>
+            <div class="cat-content">
+              <div class="cat-toolbar">
+                <div class="ct-search">
+                  <input type="text" placeholder="Search by name or email…" oninput="filterUsers('verified', this.value)" />
+                </div>
+                <label class="ct-master-toggle">
+                  <input type="checkbox" id="masterVerified" onchange="setAll('verified', this.checked)" checked />
+                  <span>Select all</span>
+                </label>
+              </div>
+              <div id="domainListVerified"></div>
+              <div class="cat-footer">
+                <div class="cf-info" id="cfInfoVerified">
+                  <strong id="ctaVerifiedCount2">142</strong> users selected · all will be <strong id="ctaVerifiedVerb">added directly</strong>
+                </div>
+                <button class="cas-cta green" id="ctaVerified" onclick="commitCategory('verified', event)">
+                  <span id="ctaVerifiedVerbBtn">Add</span> <span class="cta-count" id="ctaVerifiedCount">142</span> <span>selected users →</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================
+               CATEGORY 2: UNVERIFIED DOMAINS
+               ============================================ -->
+          <div class="category-block" id="catUnverified">
+            <div class="cat-strip amber" onclick="toggleCatBlock('catUnverified', event)">
+              <span class="cs-chevron">▾</span>
+              <div class="cs-icon">✉</div>
+              <div class="cs-text">
+                <div class="cs-title">Unverified domains — will be invited</div>
+                <div class="cs-sub">These users will receive an invitation email and join Cliq only after accepting it.</div>
+              </div>
+              <div class="cs-counter" id="csCounterUnverified"><strong>31</strong> users · 2 domains</div>
+            </div>
+            <div class="cat-content">
+
+              <!-- Recommended-action card: why-to-verify (3 points) + how-to-verify (providers + CTA) -->
+              <div class="recommend-card">
+                <div class="rc-head">
+                  <span class="rc-badge">RECOMMENDED</span>
+                  <span class="rc-title">Verify these domains before you proceed</span>
+                </div>
+                <div class="rc-body">
+                  <div class="rc-point">
+                    <div class="rc-point-num">1</div>
+                    <div>
+                      <strong>Invites can't be undone.</strong> Once you send invites, these users can join only by accepting the email. Verifying the domain afterwards won't change that — they'll still need to accept.
+                    </div>
+                  </div>
+                  <div class="rc-point">
+                    <div class="rc-point-num">2</div>
+                    <div>
+                      <strong>Each acceptance triggers a second migration pass.</strong> When an invited user accepts later, Cliq re-runs mapping to attach their channel history, conversations, and files to the newly-created account. This second pass runs silently in the background — but it adds time to the overall migration and stretches a clean job into hours of trickling completions.
+                    </div>
+                  </div>
+                  <div class="rc-point" id="rcPointThree">
+                    <div class="rc-point-num">3</div>
+                    <div>
+                      <strong>Verifying once now saves both.</strong> Users on a verified domain are added directly in a single pass — no invite email, no second-pass mapping. Verification typically takes minutes (worst case 48 hours, depending on your DNS provider).
+                    </div>
+                  </div>
+                </div>
+                <div class="rc-action">
+                  <div class="rc-providers">
+                    One-click verification supported with
+                    <span class="provider-chip">GoDaddy</span>
+                    <span class="provider-chip">Cloudflare</span>
+                    <span class="provider-chip">IONOS</span>
+                    <span style="color:#806000">· other providers use a 4-step TXT-record path</span>
+                  </div>
+                  <button class="rc-cta" onclick="goToDomains()">Verify in Domains →</button>
+                </div>
+              </div>
+
+              <div class="cat-toolbar">
+                <div class="ct-search">
+                  <input type="text" placeholder="Search by name or email…" oninput="filterUsers('unverified', this.value)" />
+                </div>
+                <label class="ct-master-toggle">
+                  <input type="checkbox" id="masterUnverified" onchange="setAll('unverified', this.checked)" checked />
+                  <span>Select all</span>
+                </label>
+              </div>
+              <div id="domainListUnverified"></div>
+              <div class="cat-footer">
+                <div class="cf-info" id="cfInfoUnverified">
+                  <strong id="ctaUnverifiedCount2">31</strong> users selected · all will <strong>receive an invite email</strong>
+                </div>
+                <button class="cas-cta amber" id="ctaUnverified" onclick="commitCategory('unverified', event)">
+                  <span>Invite</span> <span class="cta-count" id="ctaUnverifiedCount">31</span> <span>selected users →</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================
+               CATEGORY 3: CAN'T INVITE
+               ============================================ -->
+          <div class="category-block" id="catCant">
+            <div class="cat-strip red" onclick="toggleCatBlock('catCant', event)">
+              <span class="cs-chevron">▾</span>
+              <div class="cs-icon">⊘</div>
+              <div class="cs-text">
+                <div class="cs-title">Can't invite yet — needs admin resolution</div>
+                <div class="cs-sub">Each Zoho identity can belong to only one org and one data center at a time. Resolve the conflict for any user (or all), then retry to move them into the right group.</div>
+              </div>
+              <div class="cs-counter" id="csCounterCant"><strong>14</strong> users · 2 sub-groups</div>
+            </div>
+            <div class="cat-content">
+              <div id="cantInviteGroups"></div>
+              <div class="cat-footer">
+                <div class="cf-info">
+                  Ask each user (or their admin) to leave their other org or switch DC. Use <strong>Retry</strong> next to each row when ready, or retry the whole list at once.
+                </div>
+                <button class="cas-cta red" onclick="refreshCantInvite(event)">
+                  ↻ Retry all <span class="cta-count" id="ctaCantCount">14</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- FOOTER — per-category CTAs above commit users; this footer just summarises -->
+          <div class="map-footer">
+            <div class="summary">
+              <strong id="footerSummaryText">173 of 187 users selected</strong> ·
+              <span id="footerSummaryBreakdown">use the Add and Invite buttons above to commit each group</span>
+            </div>
+            <div>
+              <button class="btn btn-ghost" onclick="goScreen('upload')">Back</button>
+              <button class="btn btn-primary" onclick="goScreen('status')" id="reviewStartBtn" style="display:none">View migration status →</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SCREEN 5: MIGRATION STATUS — unified success/failure view, populated dynamically -->
+      <section class="screen" data-screen="status">
+        <div class="page-head">
+          <div>
+            <h2 id="statusTitle">Migration status</h2>
+            <p id="statusSubtitle">Here's how the migration went. Retry any users that failed, then continue.</p>
+          </div>
+        </div>
+
+        <!-- Status summary strip — populated by populateStatusScreen() -->
+        <div class="summary-strip" id="statusSummaryStrip" style="margin-top:0">
+          <div>
+            <div class="num" style="color:var(--green)">
+              <span class="badge-dot" style="background:var(--green)"></span><span id="statusAddedCount">0</span>
+            </div>
+            <div class="lbl" id="statusAddedLbl">Added directly</div>
+          </div>
+          <div>
+            <div class="num" style="color:var(--amber)">
+              <span class="badge-dot" style="background:var(--amber)"></span><span id="statusInvitedCount">0</span>
+            </div>
+            <div class="lbl">Invitations sent</div>
+          </div>
+          <div>
+            <div class="num" style="color:var(--red)" id="statusFailNumWrap">
+              <span class="badge-dot" style="background:var(--red)"></span><span id="statusFailCount">0</span>
+            </div>
+            <div class="lbl">Still failing</div>
+          </div>
+        </div>
+
+        <!-- Failures section (shown only when there are failures) -->
+        <div class="error-shell" id="statusFailSection" style="display:none">
+          <h3>⚠ Some users hit transient errors</h3>
+          <p style="color: var(--ink-2); margin: 0;">You don't have to fix every failing user before continuing — the successes are already in Cliq. Anything you retry successfully will be added to the success count.</p>
+
+          <div style="display:flex;gap:8px;margin-top:14px;">
+            <button class="btn btn-primary" onclick="retryAll()" id="retryAllBtn">↻ Retry failing users (<span id="retryAllCount">0</span>)</button>
+            <button class="btn btn-primary" style="background:var(--green)" onclick="continueWithSuccessful()" id="continueBtn">→ Continue to Cliq</button>
+          </div>
+
+          <div class="err-list" id="errList"><!-- populated dynamically --></div>
+
+          <div class="info-note" style="margin:14px 0 0">
+            <span class="ic">ℹ</span>
+            <div>
+              <strong>About failing users.</strong> Anyone still failing after retries stays in a queue you can return to from <em>Admin → Migration history</em>. Their data is held safely — nothing is dropped.
+            </div>
+          </div>
+        </div>
+
+        <!-- Success-only state (no failures) -->
+        <div class="error-shell" id="statusOkSection" style="display:none">
+          <h3 style="color:var(--green)">✓ All users migrated successfully</h3>
+          <p style="color: var(--ink-2); margin: 0 0 16px;">Channel and message data continues migrating in the background. Newly-added users will see a banner explaining the brief delay until their data finishes associating.</p>
+          <button class="btn btn-primary" onclick="goScreen('dashboard')">Go to Cliq dashboard →</button>
+        </div>
+      </section>
+
+      <!-- SCREEN 8: POST-MIGRATION DASHBOARD WITH BANNERS -->
+      <section class="screen" data-screen="dashboard">
+        <div class="page-head">
+          <div>
+            <h2>Newly migrated user — first dashboard visit</h2>
+            <p>How the in-app banner behaves while data is still populating. Switch state to see "during" vs "after" migration messaging.</p>
+          </div>
+          <div class="toggle-group" style="background:#fff;border:1px solid var(--border);width:auto;display:inline-flex;" id="bannerToggle">
+            <button data-banner="during" class="on">During migration</button>
+            <button data-banner="after">After migration · associating</button>
+          </div>
+        </div>
+        <div class="dash-mock">
+          <div class="dash-banner during" id="bannerDuring">
+            <span class="ic">⏱</span>
+            <div>
+              <strong>Migration is in progress.</strong> You'll be able to view all your channels and conversations once it's complete. We'll notify you here.
+            </div>
+            <button class="dismiss" disabled style="opacity:0.4">×</button>
+          </div>
+          <div class="dash-banner after" id="bannerAfter" style="display:none">
+            <span class="ic">✦</span>
+            <div>
+              <strong>Almost there.</strong> Your old conversations are being associated with your Cliq account. This page updates automatically — usually under a minute.
+            </div>
+            <button class="dismiss" disabled style="opacity:0.4">×</button>
+          </div>
+          <div class="dash-area">
+            <div class="dash-side">
+              <div class="item">⌂ Home</div>
+              <div class="item active"># general</div>
+              <div class="item"># engineering</div>
+              <div class="item"># marketing</div>
+              <div class="item">⌬ Direct messages</div>
+              <div class="item">⓲ Bots &amp; channels</div>
+            </div>
+            <div class="dash-main">
+              <div class="chat-stub">
+                <div class="avatar teal">CL</div>
+                <div style="flex:1">
+                  <div><span class="name">Cliq</span> <span class="time">just now</span></div>
+                  <div class="msg">Welcome to your new home, Julia. We're pulling in your Slack history. Channels and DMs will appear as they're ready.</div>
+                </div>
+              </div>
+              <div class="chat-stub">
+                <div class="skel" style="width:32px;height:32px;border-radius:50%"></div>
+                <div style="flex:1">
+                  <div class="skel" style="height:11px;width:140px"></div>
+                  <div class="skel" style="height:9px;width:220px;margin-top:8px"></div>
+                </div>
+              </div>
+              <div class="chat-stub">
+                <div class="skel" style="width:32px;height:32px;border-radius:50%"></div>
+                <div style="flex:1">
+                  <div class="skel" style="height:11px;width:120px"></div>
+                  <div class="skel" style="height:9px;width:280px;margin-top:8px"></div>
+                  <div class="skel" style="height:9px;width:180px;margin-top:4px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================
+           SCREEN: DOMAINS (mirrors existing Cliq Domain Verification feature)
+           Side-step from mapping — admin returns when done
+           ============================================ -->
+      <section class="screen" data-screen="domains">
+        <div class="page-head">
+          <div>
+            <h2>Domains</h2>
+            <p>Verify the domains your team uses. Verification unlocks per-user TFA controls, password reset, and lets imported users skip the invite step during migration.</p>
+          </div>
+        </div>
+
+        <!-- Return-to-migration banner — shows admin where they came from -->
+        <div class="return-banner">
+          <div class="rb-icon">↩</div>
+          <div class="rb-text">
+            <strong>You came from a migration in progress.</strong> Your user selections are saved. Verify the domains below — newly-verified users will move from "Will be invited" to "Will be added directly" automatically when you return.
+          </div>
+          <button onclick="returnToMapping()">Return to migration →</button>
+        </div>
+
+        <div class="domains-page">
+          <div class="domains-toolbar">
+            <input placeholder="Search domains" />
+            <div class="toolbar-actions">
+              <button class="btn btn-ghost btn-small">↻ Sync from other Zoho apps</button>
+              <button class="btn btn-primary btn-small">+ Add domain</button>
+            </div>
+          </div>
+
+          <div class="domains-table-head">
+            <div>Domain</div>
+            <div>Ownership</div>
+            <div>Mail authentication</div>
+            <div></div>
+          </div>
+
+          <div class="domain-row-full">
+            <div class="dname">
+              acme.com
+              <span class="added">Added Apr 18, 2026 · synced from Zoho Directory</span>
+            </div>
+            <div class="dstatus verified"><span class="ico">✓</span> Verified</div>
+            <div class="dstatus verified"><span class="ico">✓</span> Authenticated</div>
+            <div></div>
+          </div>
+
+          <div class="domain-row-full in-progress" id="verifyingRow">
+            <div class="dname">
+              acme.io
+              <span class="added">Detected in your Slack export · 24 users on this domain</span>
+            </div>
+            <div class="dstatus unverified"><span class="ico">⚠</span> Not verified</div>
+            <div class="dstatus" style="color:var(--ink-3)"><span class="ico">—</span> Pending verification</div>
+            <div><button class="verify-btn-sm" onclick="startInlineVerify('acme.io')">Verify</button></div>
+          </div>
+
+          <div class="domain-row-full">
+            <div class="dname">
+              acme-eu.io
+              <span class="added">Detected in your Slack export · 7 users on this domain</span>
+            </div>
+            <div class="dstatus unverified"><span class="ico">⚠</span> Not verified</div>
+            <div class="dstatus" style="color:var(--ink-3)"><span class="ico">—</span> Pending verification</div>
+            <div><button class="verify-btn-sm" onclick="startInlineVerify('acme-eu.io')">Verify</button></div>
+          </div>
+
+          <!-- Verification wizard, hidden until admin clicks Verify -->
+          <div class="verify-wizard" id="verifyWizard" style="display:none">
+            <h4>Verify <span class="mono" id="verifyingDomainName">acme.io</span></h4>
+            <p>Either connect your DNS provider directly, or add a TXT record manually. Verification typically completes in minutes, worst case 48 hours.</p>
+
+            <div style="margin-bottom: 14px">
+              <div style="font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); margin-bottom:8px;">One-click via your DNS provider</div>
+              <div class="vw-providers">
+                <div class="vw-provider" onclick="oneClickVerify('Cloudflare')">Cloudflare</div>
+                <div class="vw-provider" onclick="oneClickVerify('GoDaddy')">GoDaddy</div>
+                <div class="vw-provider" onclick="oneClickVerify('IONOS')">IONOS</div>
+              </div>
+            </div>
+
+            <div style="font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); margin: 14px 0 8px;">— or — verify manually with a TXT record</div>
+
+            <div class="vw-step">
+              <div class="vw-num">1</div>
+              <div class="vw-content">
+                <div class="vw-title">Sign in to your DNS provider</div>
+                <div class="vw-desc">Open the DNS management page for <span class="mono" id="verifyingDomainName2">acme.io</span> in your registrar's console.</div>
+              </div>
+            </div>
+            <div class="vw-step">
+              <div class="vw-num">2</div>
+              <div class="vw-content">
+                <div class="vw-title">Add this TXT record</div>
+                <div class="vw-desc">Paste the values below into a new TXT record on your domain's DNS zone.</div>
+                <div class="vw-record">
+                  <div class="field"><strong>Host:</strong> @ &nbsp;·&nbsp; <strong>Value:</strong> zoho-verification=zb1234567.zmverify.zoho.com</div>
+                  <button class="copy">Copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="vw-step">
+              <div class="vw-num">3</div>
+              <div class="vw-content">
+                <div class="vw-title">Wait for propagation</div>
+                <div class="vw-desc">Most DNS providers propagate within minutes. In rare cases this can take up to 48 hours.</div>
+              </div>
+            </div>
+            <div class="vw-step">
+              <div class="vw-num">4</div>
+              <div class="vw-content">
+                <div class="vw-title">Click Validate</div>
+                <div class="vw-desc">Cliq checks DNS, marks the domain verified, and re-categorizes affected migration users automatically.</div>
+              </div>
+            </div>
+
+            <div class="vw-actions">
+              <button class="btn btn-ghost" onclick="cancelInlineVerify()">Cancel</button>
+              <button class="btn btn-primary" onclick="simulateVerifySuccess()">Validate now</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px; font-size:11.5px; color:var(--ink-3); display:flex; gap:6px; align-items:center;">
+          <span>ⓘ</span>
+          <span>This screen lives at <strong>Admin Panel → Organization → Domains</strong>. It's the same feature your admins use for TFA and password reset gating — we just deep-link here from migration with the relevant domains pre-detected.</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ============================================
+     DOMAIN VERIFICATION REDIRECT NOTICE
+     ============================================ -->
+<div class="modal-backdrop" id="verifyModal" onclick="closeVerifyModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <span style="font-size:18px">🌐</span>
+      <h3>Verify your domains in Cliq</h3>
+      <button class="close" onclick="closeVerifyModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p>Domain verification is handled in <strong>Admin Panel → Organization → Domains</strong>. We'll open that page in this tab and pre-fill the domains we detected in your export.</p>
+
+      <div class="domain-row" style="margin-top:16px">
+        <span class="name">acme.io</span>
+        <span class="pill pill-amber" style="margin-left:auto">Unverified · 24 users</span>
+      </div>
+      <div class="domain-row">
+        <span class="name">acme-eu.io</span>
+        <span class="pill pill-amber" style="margin-left:auto">Unverified · 7 users</span>
+      </div>
+
+      <div class="info-note" style="margin:18px 0 0">
+        <span class="ic">💾</span>
+        <div>
+          <strong>Your user selections are saved.</strong> When you finish verification (or close the Domains page), you'll come back here and any newly-verified users will move from "Will be invited" to "Will be added directly" automatically.
+        </div>
+      </div>
+
+      <div class="info-note" style="margin:10px 0 0; background:#fdf3e2; border-color:#f0d977; color:#6f4f00">
+        <span class="ic">⏱</span>
+        <div>
+          DNS propagation usually takes a few minutes — worst case, up to <strong>48 hours</strong>. You can continue the migration in parallel; we re-check the domain in the background.
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeVerifyModal()">Stay on this screen</button>
+      <button class="btn btn-primary" onclick="proceedToDomains()">Go to Domains →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===========================================
+   STATE
+   =========================================== */
+const SOURCES = {
+  slack:   { name: 'Slack',           icon: '💬', subtitle: 'Workspace settings → Export workspace data' },
+  teams:   { name: 'Microsoft Teams', icon: '🟦', subtitle: 'Azure app + Python export script' },
+  gchat:   { name: 'Google Chat',     icon: '💚', subtitle: 'Google Workspace Admin → Data export' },
+  meta:    { name: 'Meta Workplace',  icon: '🟣', subtitle: 'Workplace admin → Custom integration + access token' }
+};
+
+let state = {
+  screen: 'mapping',
+  scenario: 'no-org',
+  source: 'slack',
+  users: {
+    verified: [],
+    unverified: [],
+    otherOrg: [],
+    otherDc: [],
+    external: []
+  },
+  // Per-domain "show more" expansion state
+  expandedGroups: new Set(),
+  // Per-bucket search filter (preserved across renders)
+  filters: { verified: '', unverified: '' },
+  // Cumulative count of users that have been successfully committed (added/invited) per bucket.
+  // Drives the "✓ N users added so far" state on the per-category CTA.
+  // Whether a category is "done" is computed from per-user statuses, not stored here.
+  committedCounts: { verified: 0, unverified: 0 },
+  // Loader state — true while a category's commit is mid-flight
+  committing: { verified: false, unverified: false },
+  // Users that failed during provisioning — surface on the status screen with Retry
+  failedUsers: [],
+  // Simulated edge case states
+  hasAlreadyInvited: false,
+  verifying: false,
+  empty: false,
+  bannerView: 'during',
+};
+
+/* ===========================================
+   SEED USER DATA
+   =========================================== */
+const firstNames = ['Aarav','Bea','Carlos','Diane','Emil','Farah','Gita','Hiro','Isha','Jonas','Kira','Liam','Maya','Niko','Olu','Priya','Quinn','Ravi','Sana','Tariq','Uma','Vik','Wren','Xiu','Yael','Zane','Anya','Boris','Cleo','Dario','Eden','Fionn','Gemma','Henrik','Inaya'];
+const lastNames  = ['Mehta','Singh','Lopez','Patel','Ortega','Khan','Ahmed','Sato','Rao','Nilsen','Kovacs','Brennan','Acosta','Vargas','Choi','Stein','O\'Hara','Mwangi','Park','Reyes'];
+
+// Verified domains (multiple — admin has verified more than one)
+const verifiedDomains = [
+  { name: 'zohocorp.com', count: 84 },
+  { name: 'acme.io',      count: 58 },
+];
+// Unverified domains (multiple)
+const unverifiedDomains = [
+  { name: 'acme-eu.io',   count: 18 },
+  { name: 'beta-acme.com', count: 13 },
+];
+// Can't-invite sub-categories: other-org and other-DC only (external removed)
+// Note: zohocorp.com is verified, so any user on it who's currently in another org will route
+// to "Added directly" on retry. partner-co.com isn't verified, so those route to "Will be invited".
+const otherOrgDomains = [
+  { name: 'zohocorp.com',       count: 2 }, // these will route to VERIFIED on retry
+  { name: 'partner-co.com',     count: 4 }, // these will route to UNVERIFIED on retry
+];
+const otherDcDomains = [
+  { name: 'acme.com.au',  count: 3 },       // these will route to UNVERIFIED on retry
+];
+
+// Convenience accessor (kept for legacy refs)
+const verifiedDomain = verifiedDomains[0].name;
+
+function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function seedUser(domain, opts={}) {
+  const first = pick(firstNames); const last = pick(lastNames);
+  return {
+    id: Math.random().toString(36).slice(2,9),
+    name: `${first} ${last}`,
+    email: `${first.toLowerCase()}.${last.toLowerCase().replace(/'/g,'')}@${domain}`,
+    domain: domain,
+    avatarColor: pick(['','gray','purple','teal','amber']),
+    selected: opts.selected !== undefined ? opts.selected : true,
+    locked: !!opts.locked,
+    status: opts.status || null
+  };
+}
+
+function seedAll() {
+  state.users.verified = [];
+  verifiedDomains.forEach(d => {
+    for (let i = 0; i < d.count; i++) state.users.verified.push(seedUser(d.name));
+  });
+
+  state.users.unverified = [];
+  unverifiedDomains.forEach(d => {
+    for (let i = 0; i < d.count; i++) state.users.unverified.push(seedUser(d.name));
+  });
+
+  state.users.otherOrg = [];
+  otherOrgDomains.forEach(d => {
+    for (let i = 0; i < d.count; i++) state.users.otherOrg.push(seedUser(d.name, {selected: false}));
+  });
+
+  state.users.otherDc = [];
+  otherDcDomains.forEach(d => {
+    for (let i = 0; i < d.count; i++) state.users.otherDc.push(seedUser(d.name, {selected: false}));
+  });
+
+  // External users category removed
+  state.users.external = [];
+}
+seedAll();
+
+// Group helper — returns Map<domain, user[]> preserving the canonical order from the constants above.
+function groupByDomain(bucket) {
+  const arr = state.users[bucket] || [];
+  const groups = new Map();
+  // Canonical order for verified/unverified comes from the constants; for others, insertion order
+  let domainOrder;
+  if (bucket === 'verified')        domainOrder = verifiedDomains.map(d => d.name);
+  else if (bucket === 'unverified') domainOrder = unverifiedDomains.map(d => d.name);
+  else if (bucket === 'otherOrg')   domainOrder = otherOrgDomains.map(d => d.name);
+  else if (bucket === 'otherDc')    domainOrder = otherDcDomains.map(d => d.name);
+  else                              domainOrder = [];
+
+  domainOrder.forEach(d => groups.set(d, []));
+  arr.forEach(u => {
+    if (!groups.has(u.domain)) groups.set(u.domain, []);
+    groups.get(u.domain).push(u);
+  });
+  // Strip empty groups (e.g. after verification re-bucketing)
+  for (const [d, users] of groups) {
+    if (users.length === 0) groups.delete(d);
+  }
+  return groups;
+}
+
+/* ===========================================
+   RENDERING
+   =========================================== */
+function initials(name) {
+  return name.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+}
+
+function renderUserRow(u, bucket) {
+  const isCantInvite = (bucket === 'otherOrg' || bucket === 'otherDc');
+  const isCommitted = u.status === 'committed-add' || u.status === 'committed-invite';
+  const isFailed = u.status === 'failed';
+  const rowLocked = !!u.locked || isCommitted || isFailed;
+  const rowClass = (!u.selected && !u.locked && !isCantInvite && !isCommitted) ? 'unselected' : '';
+
+  // Action chips — committed users get their success chip, failures get failure chip,
+  // unselected uncommitted users get "won't migrate" chip.
+  let actionChip = '';
+  if (u.status === 'committed-add') {
+    actionChip = '<span class="user-action-chip add"><span class="dot"></span>✓ Added</span>';
+  } else if (u.status === 'committed-invite') {
+    actionChip = '<span class="user-action-chip invite"><span class="dot"></span>✓ Invited</span>';
+  } else if (u.status === 'failed') {
+    actionChip = '<span class="user-action-chip fail"><span class="dot"></span>⨯ Failed — retry on status page</span>';
+  } else if (u.locked) {
+    actionChip = '<span class="user-action-chip locked"><span class="dot"></span>Invite already sent</span>';
+  } else if (!isCantInvite && !u.selected) {
+    const verb = bucket === 'verified' ? "Won't migrate" : "Won't be invited";
+    actionChip = `<span class="user-action-chip skip"><span class="dot"></span>${verb}</span>`;
+  }
+
+  // "Moved here" status badges (preserved across commits)
+  let statusBadge = '';
+  if (u.status === 'newly-verified') {
+    statusBadge = '<span class="pill pill-green" style="margin-left:6px">Moved here · domain verified</span>';
+  } else if (u.status === 'newly-resolved-to-verified') {
+    statusBadge = '<span class="pill pill-green" style="margin-left:6px">Moved here · conflict resolved</span>';
+  } else if (u.status === 'newly-resolved-to-unverified') {
+    statusBadge = '<span class="pill pill-amber" style="margin-left:6px">Moved here · conflict resolved</span>';
+  }
+
+  const cbDisabled = rowLocked ? 'disabled' : '';
+
+  const checkboxHtml = isCantInvite
+    ? '<span style="width:16px;display:inline-block;text-align:center;color:var(--red);font-weight:700">⊘</span>'
+    : `<input type="checkbox" ${u.selected ? 'checked' : ''} ${cbDisabled} onchange="toggleUser('${bucket}', '${u.id}', this.checked)" />`;
+
+  const rowAction = isCantInvite
+    ? `<button class="row-retry" onclick="retryOneCantInvite('${bucket}', '${u.id}', event)">↻ Retry</button>`
+    : '';
+
+  return `
+    <div class="user-row ${rowClass}" data-id="${u.id}">
+      ${checkboxHtml}
+      <div class="user-id">
+        <div class="avatar ${u.avatarColor}">${initials(u.name)}</div>
+        <div class="user-meta">
+          <div class="user-name">${u.name}</div>
+          <div class="user-email mono">${u.email}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+        ${actionChip}${statusBadge}${rowAction}
+      </div>
+    </div>
+  `;
+}
+
+/* Render a single domain group with header + collapsible user list */
+function renderDomainGroup(domain, users, bucket, filter='') {
+  const f = (filter || '').toLowerCase().trim();
+  const filtered = f
+    ? users.filter(u => u.name.toLowerCase().includes(f) || u.email.toLowerCase().includes(f))
+    : users;
+
+  // Don't render groups with zero matching users when searching
+  if (f && filtered.length === 0) return '';
+
+  // Master-checkbox state for this domain
+  const selectable = filtered.filter(u => !u.locked);
+  const selectedCount = selectable.filter(u => u.selected).length;
+  const allSelected = selectable.length > 0 && selectedCount === selectable.length;
+  const someSelected = selectedCount > 0 && selectedCount < selectable.length;
+
+  // Cap rendered rows for scale (10k+ users). User can expand.
+  const groupId = `dg_${bucket}_${domain.replace(/[^a-z0-9]/gi, '_')}`;
+  const cap = 25; // default cap per domain group
+  const expanded = state.expandedGroups.has(groupId);
+  const visibleUsers = expanded ? filtered : filtered.slice(0, cap);
+  const overflowCount = filtered.length - visibleUsers.length;
+
+  const isCantInvite = (bucket === 'otherOrg' || bucket === 'otherDc');
+  const isUnverified = (bucket === 'unverified');
+
+  // Build the master selection pill text
+  let pillText = '';
+  if (isCantInvite) {
+    pillText = `${filtered.length} can't invite`;
+  } else if (allSelected) {
+    pillText = isUnverified ? `${filtered.length} invited` : `${filtered.length} selected`;
+  } else if (someSelected) {
+    pillText = `${selectedCount} of ${filtered.length}`;
+  } else {
+    pillText = `0 of ${filtered.length} selected`;
+  }
+
+  // Header style — unverified gets the warning tint
+  const headerClass = isUnverified ? 'domain-header unverified-style' : 'domain-header';
+
+  // Master checkbox (hidden for can't-invite, since selection is irrelevant)
+  const masterCheckbox = isCantInvite
+    ? '<span style="width:16px;display:inline-block;text-align:center;color:var(--red)">⊘</span>'
+    : `<input type="checkbox" class="dg-check"
+         ${allSelected ? 'checked' : ''}
+         onchange="toggleDomain('${bucket}', '${domain}', this.checked, event)"
+         onclick="event.stopPropagation()" />`;
+
+  // Verify-this-domain CTA (unverified only)
+  const verifyLink = isUnverified
+    ? `<button class="dg-verify-link" onclick="event.stopPropagation(); goToDomains(event)">Verify this domain</button>`
+    : '';
+
+  // Domain user rows
+  const userRowsHtml = visibleUsers.map(u => renderUserRow(u, bucket)).join('');
+
+  // Overflow toggle
+  const overflowHtml = overflowCount > 0
+    ? `<div class="domain-show-more" onclick="toggleGroupExpand('${groupId}', event)">+ Show ${overflowCount} more users on @${domain} (cap at ${cap} for performance)</div>`
+    : (expanded && filtered.length > cap
+        ? `<div class="domain-show-more" onclick="toggleGroupExpand('${groupId}', event)">— Show fewer</div>`
+        : '');
+
+  return `
+    <div class="domain-group" id="${groupId}">
+      <div class="${headerClass}" onclick="toggleDomainGroupCollapse('${groupId}', event)">
+        <span class="dg-chevron">▾</span>
+        ${masterCheckbox}
+        <span class="dg-icon">@</span>
+        <span class="dg-name">${domain}</span>
+        <span class="dg-meta">${filtered.length} ${filtered.length === 1 ? 'user' : 'users'}</span>
+        <div class="dg-actions">
+          <span class="dg-selected-pill">${pillText}</span>
+          ${verifyLink}
+        </div>
+      </div>
+      <div class="domain-users">
+        ${userRowsHtml}
+        ${overflowHtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderList(bucket, containerId, filter='') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const groups = groupByDomain(bucket);
+  if (groups.size === 0) {
+    container.innerHTML = `<div class="empty" style="padding:32px"><div class="big">✓</div>This category is empty — nothing to do here.</div>`;
+    return;
+  }
+
+  let html = '';
+  for (const [domain, users] of groups) {
+    html += renderDomainGroup(domain, users, bucket, filter);
+  }
+
+  // If a search filter is set and nothing matched anywhere
+  if (filter && filter.trim() && !html) {
+    html = `<div class="empty" style="padding:24px"><div class="big">⌕</div>No users match "${filter}" across these domains.</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+/* Render the can't-invite category — has sub-groups for other-org and other-DC */
+function renderCantInviteGroups() {
+  const container = document.getElementById('cantInviteGroups');
+  if (!container) return;
+
+  const otherOrgGroups = groupByDomain('otherOrg');
+  const otherDcGroups = groupByDomain('otherDc');
+
+  let html = '';
+
+  // Sub-section: Other org
+  if (otherOrgGroups.size > 0) {
+    html += `
+      <div style="padding: 10px 20px 6px 24px; background: #fafbfc; font-size: 11px; color: var(--ink-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border);">
+        Already in another Zoho org
+      </div>
+    `;
+    for (const [domain, users] of otherOrgGroups) {
+      html += renderDomainGroup(domain, users, 'otherOrg');
+    }
+  }
+
+  // Sub-section: Other DC
+  if (otherDcGroups.size > 0) {
+    html += `
+      <div style="padding: 10px 20px 6px 24px; background: #fafbfc; font-size: 11px; color: var(--ink-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); border-top: 1px solid var(--border);">
+        In a different data center
+      </div>
+    `;
+    for (const [domain, users] of otherDcGroups) {
+      html += renderDomainGroup(domain, users, 'otherDc');
+    }
+  }
+
+  if (!html) {
+    html = `<div class="empty" style="padding:32px"><div class="big">✓</div>No conflicts found — every user can be added or invited.</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function updateCounts() {
+  const v = state.users.verified;
+  const u = state.users.unverified;
+  const oOrg = state.users.otherOrg;
+  const oDc = state.users.otherDc;
+  const cantTotal = oOrg.length + oDc.length;
+  const total = v.length + u.length + cantTotal;
+
+  const selV = v.filter(x => x.selected).length;
+  const selU = u.filter(x => x.selected).length;
+  const isHasOrg = state.scenario === 'has-org';
+
+  // A user is "committed" if it has been added/invited; "selectable" means uncommitted, not failed, not locked
+  const isCommitted = (x) => x.status === 'committed-add' || x.status === 'committed-invite';
+  const isSelectable = (x) => !isCommitted(x) && x.status !== 'failed' && !x.locked;
+
+  // Selected-uncommitted counts (these drive the per-category CTA)
+  const selUncommittedV = v.filter(x => x.selected && isSelectable(x)).length;
+  const selUncommittedU = u.filter(x => x.selected && isSelectable(x)).length;
+
+  // Total uncommitted users in each bucket (for master toggle indeterminate logic)
+  const uncommittedV = v.filter(isSelectable);
+  const uncommittedU = u.filter(isSelectable);
+
+  // Cumulative committed (used for "✓ N users added" state)
+  const committedV = state.committedCounts.verified;
+  const committedU = state.committedCounts.unverified;
+
+  // Header counts
+  const totalCountEl = document.getElementById('totalCount');
+  if (totalCountEl) totalCountEl.innerText = `${total} users`;
+  const totalDomainsEl = document.getElementById('totalDomains');
+  if (totalDomainsEl) {
+    const dcount = groupByDomain('verified').size + groupByDomain('unverified').size + groupByDomain('otherOrg').size + groupByDomain('otherDc').size;
+    totalDomainsEl.innerText = `${dcount} ${dcount === 1 ? 'domain' : 'domains'}`;
+  }
+
+  // Summary strip — labels are forward-looking ("Selected to add") since admin is still picking
+  document.getElementById('ctTotal').innerText = total;
+  document.getElementById('ctVerified').innerHTML = `<span class="badge-dot" style="background:var(--green)"></span>${isHasOrg ? 0 : selV}`;
+  document.getElementById('ctUnverified').innerHTML = `<span class="badge-dot" style="background:var(--amber)"></span>${isHasOrg ? selV + selU : selU}`;
+  document.getElementById('ctCant').innerHTML = `<span class="badge-dot" style="background:var(--red)"></span>${cantTotal}`;
+
+  // Strip label for verified — flips based on scenario
+  const lblVerified = document.getElementById('lblVerified');
+  if (lblVerified) lblVerified.innerText = isHasOrg ? 'Selected to invite (verified)' : 'Selected to add directly';
+  const lblUnverified = document.getElementById('lblUnverified');
+  if (lblUnverified) lblUnverified.innerText = 'Selected to invite';
+  const lblCant = document.getElementById('lblCant');
+  if (lblCant) lblCant.innerText = "Can't invite";
+  const lblTotal = document.getElementById('lblTotal');
+  if (lblTotal) lblTotal.innerText = 'Total in export';
+
+  // Category-strip counters
+  const vGroups = groupByDomain('verified');
+  const uGroups = groupByDomain('unverified');
+  const cantSubgroups = (oOrg.length > 0 ? 1 : 0) + (oDc.length > 0 ? 1 : 0);
+
+  const csVerifiedEl = document.getElementById('csCounterVerified');
+  if (csVerifiedEl) csVerifiedEl.innerHTML = `<strong>${v.length}</strong> users · ${vGroups.size} ${vGroups.size === 1 ? 'domain' : 'domains'}`;
+
+  const csUnverifiedEl = document.getElementById('csCounterUnverified');
+  if (csUnverifiedEl) csUnverifiedEl.innerHTML = `<strong>${u.length}</strong> users · ${uGroups.size} ${uGroups.size === 1 ? 'domain' : 'domains'}`;
+
+  const csCantEl = document.getElementById('csCounterCant');
+  if (csCantEl) csCantEl.innerHTML = `<strong>${cantTotal}</strong> users · ${cantSubgroups} ${cantSubgroups === 1 ? 'sub-group' : 'sub-groups'}`;
+
+  // Master toggle states — operate only on uncommitted users
+  const masterV = document.getElementById('masterVerified');
+  if (masterV) {
+    const sel = uncommittedV.filter(x => x.selected).length;
+    masterV.checked = (uncommittedV.length > 0 && sel === uncommittedV.length);
+    masterV.indeterminate = (sel > 0 && sel < uncommittedV.length);
+    masterV.disabled = uncommittedV.length === 0;
+  }
+  const masterU = document.getElementById('masterUnverified');
+  if (masterU) {
+    const sel = uncommittedU.filter(x => x.selected).length;
+    masterU.checked = (uncommittedU.length > 0 && sel === uncommittedU.length);
+    masterU.indeterminate = (sel > 0 && sel < uncommittedU.length);
+    masterU.disabled = uncommittedU.length === 0;
+  }
+
+  // Verified category — title + sub + CTA flip with scenario
+  const verifiedTitle = document.getElementById('verifiedTitle');
+  const verifiedSub = document.getElementById('verifiedSub');
+  if (verifiedTitle && verifiedSub) {
+    if (isHasOrg) {
+      verifiedTitle.innerText = 'Verified domains — will be invited';
+      verifiedSub.innerText = 'You already have a Zoho org, so even verified-domain users need an invite. ZUID maps cleanly — app-account membership is your call.';
+    } else {
+      verifiedTitle.innerText = 'Verified domains — will be added directly';
+      verifiedSub.innerText = 'These users can access Cliq from the email link the moment migration starts — no acceptance needed, they\'re already in the org.';
+    }
+  }
+
+  // Hide point 3 of the unverified-category "Recommended" card in has-org scenario,
+  // because in that scenario every user (verified or not) still needs an invite —
+  // verifying doesn't save the second-pass cost.
+  const rcPointThree = document.getElementById('rcPointThree');
+  if (rcPointThree) rcPointThree.style.display = isHasOrg ? 'none' : 'flex';
+
+  // CTA button — verified category.
+  // Three states: ready (selected-uncommitted > 0) / disabled (none selected) /
+  // done-for-now (no selected-uncommitted, but at least one prior commit exists).
+  // The button auto-cycles between "Add N selected users →" and "✓ M users added"
+  // depending on whether there are still selected users awaiting commit.
+  const ctaVerified = document.getElementById('ctaVerified');
+  const cfInfoVerified = document.getElementById('cfInfoVerified');
+  if (ctaVerified) {
+    const verbPresent = isHasOrg ? 'Invite' : 'Add';
+    const verbPast = isHasOrg ? 'invited' : 'added';
+    ctaVerified.classList.remove('green', 'amber', 'committed');
+    ctaVerified.classList.add(isHasOrg ? 'amber' : 'green');
+
+    if (selUncommittedV > 0) {
+      // Ready to commit
+      ctaVerified.innerHTML = `<span id="ctaVerifiedVerbBtn">${verbPresent}</span> <span class="cta-count" id="ctaVerifiedCount">${selUncommittedV}</span> <span>selected users →</span>`;
+      ctaVerified.disabled = state.committing.verified;
+      if (cfInfoVerified) {
+        const part = committedV > 0
+          ? `<strong>${committedV}</strong> users already ${verbPast} · <strong>${selUncommittedV}</strong> more selected and ready`
+          : `<strong>${selUncommittedV}</strong> users selected · all will be ${isHasOrg ? 'invited via email' : 'added directly'}`;
+        cfInfoVerified.innerHTML = part;
+      }
+    } else if (committedV > 0) {
+      // No more selected-uncommitted, but some have been committed already
+      ctaVerified.innerHTML = `<span>✓ ${committedV} users ${verbPast} so far</span>`;
+      ctaVerified.disabled = true;
+      ctaVerified.classList.add('committed');
+      if (cfInfoVerified) cfInfoVerified.innerHTML = `<strong>✓ Done for now.</strong> ${committedV} users ${verbPast}. Select more above if you want to commit additional users.`;
+    } else {
+      // Nothing selected, nothing committed
+      ctaVerified.innerHTML = `<span id="ctaVerifiedVerbBtn">${verbPresent}</span> <span class="cta-count" id="ctaVerifiedCount">0</span> <span>selected users →</span>`;
+      ctaVerified.disabled = true;
+      if (cfInfoVerified) cfInfoVerified.innerHTML = `Select users above to ${isHasOrg ? 'invite' : 'add'}.`;
+    }
+  }
+
+  // CTA button — unverified category (always Invite, no scenario flip)
+  const ctaUnverified = document.getElementById('ctaUnverified');
+  const cfInfoUnverified = document.getElementById('cfInfoUnverified');
+  if (ctaUnverified) {
+    ctaUnverified.classList.remove('committed');
+    if (selUncommittedU > 0) {
+      ctaUnverified.innerHTML = `<span>Invite</span> <span class="cta-count" id="ctaUnverifiedCount">${selUncommittedU}</span> <span>selected users →</span>`;
+      ctaUnverified.disabled = state.committing.unverified;
+      if (cfInfoUnverified) {
+        const part = committedU > 0
+          ? `<strong>${committedU}</strong> already invited · <strong>${selUncommittedU}</strong> more selected and ready`
+          : `<strong>${selUncommittedU}</strong> users selected · all will receive an invite email`;
+        cfInfoUnverified.innerHTML = part;
+      }
+    } else if (committedU > 0) {
+      ctaUnverified.innerHTML = `<span>✓ ${committedU} users invited so far</span>`;
+      ctaUnverified.disabled = true;
+      ctaUnverified.classList.add('committed');
+      if (cfInfoUnverified) cfInfoUnverified.innerHTML = `<strong>✓ Done for now.</strong> ${committedU} invitations sent. Select more above to invite additional users.`;
+    } else {
+      ctaUnverified.innerHTML = `<span>Invite</span> <span class="cta-count" id="ctaUnverifiedCount">0</span> <span>selected users →</span>`;
+      ctaUnverified.disabled = true;
+      if (cfInfoUnverified) cfInfoUnverified.innerHTML = `Select users above to invite.`;
+    }
+  }
+
+  // Can't-invite CTA
+  const ctaCantCount = document.getElementById('ctaCantCount');
+  if (ctaCantCount) ctaCantCount.innerText = cantTotal;
+
+  // Footer summary — reflects what's been committed so far and what's still pending
+  const footerSummaryText = document.getElementById('footerSummaryText');
+  const footerSummaryBreakdown = document.getElementById('footerSummaryBreakdown');
+  if (footerSummaryText && footerSummaryBreakdown) {
+    const totalCommitted = committedV + committedU;
+    const totalReady = selUncommittedV + selUncommittedU;
+    if (totalCommitted > 0 && totalReady > 0) {
+      footerSummaryText.innerText = `${totalCommitted} migrated · ${totalReady} more selected and ready`;
+      footerSummaryBreakdown.innerText = 'commit the remaining group, or view migration status';
+    } else if (totalCommitted > 0) {
+      footerSummaryText.innerText = `${totalCommitted} users migrated`;
+      footerSummaryBreakdown.innerText = 'view migration status for details';
+    } else {
+      footerSummaryText.innerText = `${totalReady} of ${total} users selected`;
+      footerSummaryBreakdown.innerText = totalReady > 0
+        ? 'use the Add and Invite buttons above to commit each group'
+        : 'select users to begin';
+    }
+  }
+}
+
+function renderAll() {
+  renderList('verified', 'domainListVerified');
+  renderList('unverified', 'domainListUnverified');
+  renderCantInviteGroups();
+  updateCounts();
+  renderScenarioTag();
+  renderExportPanel();
+  if (typeof maybeShowStatusButton === 'function') maybeShowStatusButton();
+}
+
+function renderScenarioTag() {
+  const isHasOrg = state.scenario === 'has-org';
+  const tag = document.getElementById('scenarioTag');
+  if (!tag) return;
+
+  if (isHasOrg) {
+    tag.innerText = 'Existing org · invites required';
+    const titleEl = document.getElementById('verifiedTitle');
+    const subEl = document.getElementById('verifiedSub');
+    if (titleEl) titleEl.innerText = 'Verified domains';
+    if (subEl) subEl.innerText = 'Even on verified domains, you have an existing org — so invites are still required.';
+
+    // Update how-it-works (Action 1) for has-org
+    const hiwAdd = document.getElementById('hiwAddDesc');
+    if (hiwAdd) hiwAdd.innerText = 'In your existing-org setup, every user receives an invite — direct-add isn\'t available because the org already has governance rules.';
+  } else {
+    tag.innerText = 'Fresh org · domain verified';
+    const titleEl = document.getElementById('verifiedTitle');
+    const subEl = document.getElementById('verifiedSub');
+    if (titleEl) titleEl.innerText = 'Verified domains';
+    if (subEl) subEl.innerText = 'Users on a domain you\'ve already verified in Cliq.';
+
+    const hiwAdd = document.getElementById('hiwAddDesc');
+    if (hiwAdd) hiwAdd.innerText = 'For users on a verified domain in a fresh org. They get an email link and can access Cliq right away — no acceptance needed, already in the org.';
+  }
+}
+
+function renderExportPanel() {
+  const s = SOURCES[state.source];
+  const body = document.getElementById('exportBody');
+  if (!body) return;
+  document.getElementById('exportTitle').innerText = `Export your data from ${s.name}`;
+  document.getElementById('exportSubtitle').innerText = `Follow these steps in ${s.name} to download an export file. Once it's on your machine, come back to upload it.`;
+  body.innerHTML = exportContentForSource(state.source);
+}
+
+function exportContentForSource(src) {
+  if (src === 'slack')  return slackExportContent();
+  if (src === 'teams')  return teamsExportContent();
+  if (src === 'gchat')  return gchatExportContent();
+  if (src === 'meta')   return metaExportContent();
+  return '';
+}
+
+/* ---------- SLACK ---------- */
+function slackExportContent() {
+  return `
+    <div class="source-brand">
+      <div class="sb-logo slack">#</div>
+      <div>
+        <div class="sb-name">Slack</div>
+        <div class="sb-tag">Workspace export · Standard or Enterprise Grid</div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">1</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Sign in to Slack as a workspace owner</div>
+        <div class="ssc-desc">Only owners and admins with export permissions can run a full workspace export. If you don't have access, ask your owner to grant it before continuing.</div>
+        <a class="source-link-hint" href="#" onclick="event.preventDefault()">Open Slack workspace ↗</a>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">2</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Open the export page</div>
+        <div class="ssc-desc">Navigate to <strong>Administration → Workspace settings → Import/Export Data → Export</strong>. For Enterprise Grid, the path is <strong>Org settings → Data export</strong>.</div>
+        <div class="ssc-fields">
+          <div class="ssc-field"><div class="lbl">Path</div>workspace-settings/export</div>
+          <div class="ssc-field"><div class="lbl">Permission needed</div>admin.exports:write</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">3</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Choose date range and start the export</div>
+        <div class="ssc-desc">Pick <strong>All data</strong> for a full export — recommended for migration. Slack queues the export server-side and emails you when it's ready. Typical wait: 5–30 minutes for workspaces under 10k users, longer for larger ones.</div>
+        <button class="ssc-btn ghost">Start export in Slack ↗</button>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">4</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Download the .zip and return here</div>
+        <div class="ssc-desc">Slack sends an email with a download link. Save the .zip to your machine, then come back and upload it on the next step.</div>
+      </div>
+    </div>
+
+    <div class="info-note" style="margin:14px 0 0">
+      <span class="ic">ℹ</span>
+      <div><strong>Heads-up for Enterprise Grid customers.</strong> Each workspace in your Grid exports separately. If you want all of them in Cliq, run an export per workspace and upload them one at a time — Cliq deduplicates users across uploads.</div>
+    </div>
+  `;
+}
+
+/* ---------- MICROSOFT TEAMS ---------- */
+function teamsExportContent() {
+  return `
+    <div class="source-brand">
+      <div class="sb-logo teams">T</div>
+      <div>
+        <div class="sb-name">Microsoft Teams</div>
+        <div class="sb-tag">Azure app + Graph API export script</div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">1</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Sign in to the Azure portal as a Global Administrator</div>
+        <div class="ssc-desc">You'll need permission to register an application and grant Graph API permissions for your tenant.</div>
+        <a class="source-link-hint" href="#" onclick="event.preventDefault()">Open Azure portal ↗</a>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">2</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Register a new Azure app</div>
+        <div class="ssc-desc">Go to <strong>Azure Active Directory → App registrations → New registration</strong>. Name it anything (e.g., "Cliq Migration"). Once created, you'll have an Application (client) ID and a Directory (tenant) ID.</div>
+        <div class="ssc-fields">
+          <div class="ssc-field"><div class="lbl">App name</div>Cliq Migration</div>
+          <div class="ssc-field"><div class="lbl">Account type</div>Single tenant</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">3</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Grant Graph API permissions and create a client secret</div>
+        <div class="ssc-desc">Under <strong>API permissions</strong>, add these <em>Application</em>-type Graph permissions and click <strong>Grant admin consent</strong>:</div>
+        <div class="ssc-fields" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="ssc-field"><div class="lbl">Channels</div>Channel.ReadAll</div>
+          <div class="ssc-field"><div class="lbl">Messages</div>ChannelMessage.Read.All</div>
+          <div class="ssc-field"><div class="lbl">Teams</div>Team.ReadBasic.All</div>
+          <div class="ssc-field"><div class="lbl">Users</div>User.Read.All</div>
+          <div class="ssc-field"><div class="lbl">Files</div>Files.Read.All</div>
+          <div class="ssc-field"><div class="lbl">Chats</div>Chat.Read.All</div>
+        </div>
+        <div class="ssc-desc" style="margin-top:8px">Then under <strong>Certificates &amp; secrets</strong>, create a new client secret. Copy the value — Azure only shows it once.</div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">4</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Download our export script and fill in your credentials</div>
+        <div class="ssc-desc">Run the script locally (Python 3.9+). Replace the placeholder values with the ones from steps 2 and 3:</div>
+        <div class="ssc-code"><button class="copy-btn">Copy</button><span class="cm"># cliq_teams_export.py</span>
+<span class="kw">TENANT_ID</span>     = <span class="str">"</span><span class="str">paste-your-directory-tenant-id</span><span class="str">"</span>
+<span class="kw">CLIENT_ID</span>     = <span class="str">"</span><span class="str">paste-your-application-client-id</span><span class="str">"</span>
+<span class="kw">CLIENT_SECRET</span> = <span class="str">"</span><span class="str">paste-your-client-secret</span><span class="str">"</span>
+<span class="kw">OUTPUT</span>        = <span class="str">"./teams_archive.zip"</span>
+
+<span class="cm"># Then run:</span>
+<span class="cm">#   python3 cliq_teams_export.py</span></div>
+        <button class="ssc-btn">⬇ Download cliq_teams_export.py</button>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">5</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Run the script and pick up the exported file</div>
+        <div class="ssc-desc">The script paginates Graph API for channels, messages, files, and users. It writes <span class="mono">teams_archive.zip</span> in the script's directory. Runtime is roughly <strong>1 minute per 1,000 users</strong>.</div>
+      </div>
+    </div>
+
+    <div class="info-note" style="margin:14px 0 0">
+      <span class="ic">⚠</span>
+      <div><strong>If your tenant uses Conditional Access.</strong> Some CA policies block app-only auth. If the script errors with <span class="mono">AADSTS50105</span>, ask your IT admin to whitelist the Cliq Migration app or use device-code auth (see script <code>--device-code</code> flag).</div>
+    </div>
+  `;
+}
+
+/* ---------- GOOGLE CHAT ---------- */
+function gchatExportContent() {
+  return `
+    <div class="source-brand">
+      <div class="sb-logo gchat">G</div>
+      <div>
+        <div class="sb-name">Google Chat</div>
+        <div class="sb-tag">Google Workspace Admin Console · Data Export</div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">1</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Sign in to Google Workspace Admin as a Super Admin</div>
+        <div class="ssc-desc">Data Export is available to <strong>Super Administrators</strong> only. If your Workspace account is less than 30 days old, Google requires you to wait the full 30 days before exporting — there is no workaround.</div>
+        <a class="source-link-hint" href="#" onclick="event.preventDefault()">Open admin.google.com ↗</a>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">2</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Open Data Export</div>
+        <div class="ssc-desc">From the Admin home, navigate to <strong>Data &amp; AI → Data Export</strong>. (On older consoles: <strong>Tools → Data Export</strong>.) You'll see a "Start export" page that lists what will be included.</div>
+        <div class="ssc-fields">
+          <div class="ssc-field"><div class="lbl">Console path</div>admin.google.com/ac/dataexport</div>
+          <div class="ssc-field"><div class="lbl">Min role</div>Super Admin</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">3</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Confirm the export scope and start</div>
+        <div class="ssc-desc">Google exports <strong>all data across all users and services</strong> — there is no per-service or per-user filter. Cliq's parser ignores everything outside Chat (Gmail, Drive, etc.), so the extra data is harmless but inflates the file size.</div>
+        <button class="ssc-btn ghost">Start data export ↗</button>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">4</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Wait for Google to prepare the export</div>
+        <div class="ssc-desc">Google emails you when the export is ready. Wait time is typically <strong>1–9 days</strong> depending on org size — this is Google's published SLA, not Cliq's. The link expires <strong>15 days</strong> after Google sends it.</div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">5</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Download from Google Cloud Storage and return here</div>
+        <div class="ssc-desc">The email contains a one-time link to a Cloud Storage bucket. Download the .zip (or .tgz) to your machine, then come back and upload it on the next step.</div>
+      </div>
+    </div>
+
+    <div class="info-note" style="margin:14px 0 0">
+      <span class="ic">⏱</span>
+      <div><strong>Plan your migration window with Google's SLA in mind.</strong> If you've never run a Workspace export before, start it well ahead of your target Cliq go-live date. Cliq holds your upload session open indefinitely — you can come back days later and pick up where you left off.</div>
+    </div>
+  `;
+}
+
+/* ---------- META WORKPLACE ---------- */
+function metaExportContent() {
+  return `
+    <div class="source-brand">
+      <div class="sb-logo meta">W</div>
+      <div>
+        <div class="sb-name">Meta Workplace</div>
+        <div class="sb-tag">Custom integration + access token export</div>
+      </div>
+    </div>
+
+    <div class="info-note" style="margin:0 0 14px; background:#fdf3e2; border-color:#f0d977; color:#6f4f00">
+      <span class="ic">⚠</span>
+      <div><strong>Workplace is sunsetting on Aug 31, 2025.</strong> Meta has stopped accepting new subscriptions and is phasing out the product. If your team is still on Workplace, you're on Meta's grace-access window — this migration should be a priority.</div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">1</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Sign in to Workplace as an admin</div>
+        <div class="ssc-desc">You need the <strong>Manage Integrations</strong> permission. System admins have it by default.</div>
+        <a class="source-link-hint" href="#" onclick="event.preventDefault()">Open your Workplace admin panel ↗</a>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">2</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Create a custom integration</div>
+        <div class="ssc-desc">Go to <strong>Admin Panel → Integrations → Create custom integration</strong>. Name it "Cliq Migration". Grant the following permissions:</div>
+        <div class="ssc-fields" style="grid-template-columns:1fr 1fr">
+          <div class="ssc-field"><div class="lbl">Read</div>Group content</div>
+          <div class="ssc-field"><div class="lbl">Read</div>Group membership</div>
+          <div class="ssc-field"><div class="lbl">Read</div>Messages</div>
+          <div class="ssc-field"><div class="lbl">Read</div>User profiles</div>
+          <div class="ssc-field"><div class="lbl">Read</div>Files</div>
+          <div class="ssc-field"><div class="lbl">Read</div>Reactions</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">3</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Generate and copy the access token</div>
+        <div class="ssc-desc">Workplace shows the token <strong>once</strong>, when you create the integration. Copy it immediately into a secure location — you cannot retrieve it later, only regenerate.</div>
+        <div class="ssc-code"><button class="copy-btn">Copy</button><span class="cm"># Your token looks like:</span>
+<span class="kw">WORKPLACE_ACCESS_TOKEN</span>=<span class="str">DQVJxxx...xxxxxxxxxxxxxx</span></div>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">4</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Download our export script and paste the token</div>
+        <div class="ssc-desc">Our script uses Workplace's Graph API to pull groups, members, messages, files, and reactions into a single .zip.</div>
+        <div class="ssc-code"><button class="copy-btn">Copy</button><span class="cm"># cliq_workplace_export.py</span>
+<span class="kw">ACCESS_TOKEN</span> = <span class="str">"</span><span class="str">paste-your-workplace-token</span><span class="str">"</span>
+<span class="kw">COMMUNITY_ID</span> = <span class="str">"</span><span class="str">your-workplace-community-id</span><span class="str">"</span>
+<span class="kw">OUTPUT</span>       = <span class="str">"./workplace_archive.zip"</span>
+
+<span class="cm"># Then run:</span>
+<span class="cm">#   python3 cliq_workplace_export.py</span></div>
+        <button class="ssc-btn">⬇ Download cliq_workplace_export.py</button>
+      </div>
+    </div>
+
+    <div class="source-step-card">
+      <div class="ssc-num">5</div>
+      <div class="ssc-body">
+        <div class="ssc-title">Run the script and pick up the exported file</div>
+        <div class="ssc-desc">Runtime is roughly <strong>2 minutes per 1,000 group members</strong>. The script writes <span class="mono">workplace_archive.zip</span> in its working directory. Once done, come back and upload it.</div>
+      </div>
+    </div>
+  `;
+}
+
+/* Kept for any old callers — now unused, returns empty */
+function stepsForSource(s) { return []; }
+
+/* ===========================================
+   INTERACTIONS
+   =========================================== */
+function goScreen(name) {
+  state.screen = name;
+  document.querySelectorAll('.screen').forEach(el => el.classList.toggle('active', el.dataset.screen === name));
+  document.querySelectorAll('#stepNav li').forEach(li => li.classList.toggle('active', li.dataset.screen === name));
+  // Sync breadcrumb
+  const crumb = document.getElementById('crumbActive');
+  if (name === 'source') crumb.innerText = 'Import External Data';
+  else if (name === 'export') crumb.innerText = `Import from ${SOURCES[state.source].name}`;
+  else if (name === 'upload') crumb.innerText = `Import from ${SOURCES[state.source].name} → Upload`;
+  else if (name === 'mapping') crumb.innerText = 'Import → Choose users';
+  else if (name === 'status') {
+    crumb.innerText = 'Import → Migration status';
+    if (typeof populateStatusScreen === 'function') populateStatusScreen();
+  }
+  else if (name === 'dashboard') crumb.innerText = 'Cliq Home';
+  else if (name === 'domains') crumb.innerText = 'Organization → Domains';
+
+  const progSrcEl = document.getElementById('progSource');
+  if (progSrcEl) progSrcEl.innerText = SOURCES[state.source].name;
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function goSource(s) {
+  state.source = s;
+  goScreen('export');
+}
+
+document.querySelectorAll('#stepNav li').forEach(li => {
+  li.addEventListener('click', () => goScreen(li.dataset.screen));
+});
+
+document.querySelectorAll('#scenarioToggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#scenarioToggle button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    state.scenario = b.dataset.scenario;
+    // Changing scenario invalidates any committed plan — reset.
+    state.committedCounts = { verified: 0, unverified: 0 };
+    state.committing = { verified: false, unverified: false };
+    state.failedUsers = [];
+    // Also clear any user-level committed/failed statuses since the bucketing might change
+    ['verified','unverified'].forEach(b => {
+      state.users[b].forEach(u => {
+        if (u.status === 'committed-add' || u.status === 'committed-invite' || u.status === 'failed') u.status = null;
+      });
+    });
+    document.getElementById('scenarioInfo').innerText =
+      state.scenario === 'no-org'
+        ? 'Fresh customer. Cliq creates the org and adds verified-domain users directly. Unverified domain users need explicit invites.'
+        : 'Customer already has a Zoho org. Even verified-domain users need admin-sent invites because the org exists.';
+    renderAll();
+    if (state.screen === 'status') populateStatusScreen();
+  });
+});
+
+document.querySelectorAll('#bannerToggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#bannerToggle button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    state.bannerView = b.dataset.banner;
+    document.getElementById('bannerDuring').style.display = state.bannerView === 'during' ? 'flex' : 'none';
+    document.getElementById('bannerAfter').style.display  = state.bannerView === 'after'  ? 'flex' : 'none';
+  });
+});
+
+/* Collapse/expand the entire category block */
+function toggleCatBlock(id, e) {
+  if (e) e.stopPropagation();
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+/* Legacy support — kept for any old onclick refs */
+function toggleCat(id, e) {
+  if (e) e.stopPropagation();
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('collapsed');
+}
+
+/* Collapse/expand a single domain group */
+function toggleDomainGroupCollapse(groupId, e) {
+  // Don't toggle if user clicked a checkbox/button inside the header
+  if (e && e.target.matches('input, button, .dg-verify-link, .dg-check')) return;
+  const el = document.getElementById(groupId);
+  if (el) el.classList.toggle('collapsed');
+}
+
+/* Show all / show fewer for domain groups that hit the cap */
+function toggleGroupExpand(groupId, e) {
+  if (e) e.stopPropagation();
+  if (state.expandedGroups.has(groupId)) {
+    state.expandedGroups.delete(groupId);
+  } else {
+    state.expandedGroups.add(groupId);
+  }
+  // Re-render the relevant category list
+  if (groupId.startsWith('dg_verified_'))   renderList('verified', 'domainListVerified', state.filters.verified);
+  if (groupId.startsWith('dg_unverified_')) renderList('unverified', 'domainListUnverified', state.filters.unverified);
+  if (groupId.startsWith('dg_otherOrg_') || groupId.startsWith('dg_otherDc_')) renderCantInviteGroups();
+}
+
+/* Single-user toggle */
+function toggleUser(bucket, userId, checked) {
+  const u = state.users[bucket].find(x => x.id === userId);
+  if (u && !u.locked) u.selected = checked;
+  // Re-render only the affected category so domain-master checkboxes refresh
+  if (bucket === 'verified')   renderList('verified', 'domainListVerified', state.filters.verified);
+  if (bucket === 'unverified') renderList('unverified', 'domainListUnverified', state.filters.unverified);
+  updateCounts();
+}
+
+/* Domain-level toggle: select/unselect everyone in a single domain */
+function toggleDomain(bucket, domain, checked, e) {
+  if (e) e.stopPropagation();
+  const isSelectable = (x) => !(x.status === 'committed-add' || x.status === 'committed-invite' || x.status === 'failed') && !x.locked;
+  state.users[bucket].forEach(u => {
+    if (u.domain === domain && isSelectable(u)) u.selected = checked;
+  });
+  if (bucket === 'verified')   renderList('verified', 'domainListVerified', state.filters.verified);
+  if (bucket === 'unverified') renderList('unverified', 'domainListUnverified', state.filters.unverified);
+  updateCounts();
+}
+
+/* Category-level toggle: select/unselect every UNCOMMITTED user in the category.
+   Committed users keep their state — once added/invited they can't be re-toggled. */
+function setAll(bucket, val) {
+  const isSelectable = (x) => !(x.status === 'committed-add' || x.status === 'committed-invite' || x.status === 'failed') && !x.locked;
+  state.users[bucket].forEach(u => {
+    if (isSelectable(u)) u.selected = val;
+  });
+  if (bucket === 'verified')   renderList('verified', 'domainListVerified', state.filters.verified);
+  if (bucket === 'unverified') renderList('unverified', 'domainListUnverified', state.filters.unverified);
+  updateCounts();
+}
+
+/* Search filter inside a category — persists in state so re-renders preserve it */
+function filterUsers(bucket, value) {
+  state.filters[bucket] = value;
+  if (bucket === 'verified')   renderList('verified', 'domainListVerified', value);
+  if (bucket === 'unverified') renderList('unverified', 'domainListUnverified', value);
+}
+
+/* Per-category action CTA — commits the SELECTED-UNCOMMITTED users in that category.
+   Each commit:
+     1. Shows a loader + ETA countdown inside the CTA button
+     2. Marks those users with `committed-add` or `committed-invite` status
+     3. Disables their individual checkboxes (committed users can't be re-selected)
+     4. Leaves uncommitted/unselected users in the same category fully editable —
+        admin can come back, select more, and commit again.
+     5. Always includes a small number of "failed" rows for demo realism, surfaced
+        on the Migration Status screen with retry. */
+function commitCategory(bucket, e) {
+  if (e) e.stopPropagation();
+  if (state.committing[bucket]) return;
+
+  const isHasOrg = state.scenario === 'has-org';
+  const isSelectable = (x) => !(x.status === 'committed-add' || x.status === 'committed-invite' || x.status === 'failed') && !x.locked;
+  const eligibleNow = state.users[bucket].filter(u => u.selected && isSelectable(u));
+  const count = eligibleNow.length;
+  if (count === 0) return;
+
+  const btn = document.getElementById(bucket === 'verified' ? 'ctaVerified' : 'ctaUnverified');
+  const cfInfo = document.getElementById(bucket === 'verified' ? 'cfInfoVerified' : 'cfInfoUnverified');
+  if (!btn) return;
+
+  state.committing[bucket] = true;
+
+  const verbing = (bucket === 'verified' && !isHasOrg) ? 'Adding' : 'Sending invites to';
+  const etaSec = Math.max(8, Math.ceil(count / 50));
+  let elapsed = 0;
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="loader-spinner"></span> <span>${verbing} ${count} users… </span><span class="cta-eta">ETA ${etaSec}s</span>`;
+  btn.classList.add('committing');
+  if (cfInfo) cfInfo.innerHTML = `<strong>In progress…</strong> Provisioning ${count} users — you can stay on this page or come back later.`;
+
+  const timer = setInterval(() => {
+    elapsed++;
+    const remaining = Math.max(0, etaSec - elapsed);
+    const etaEl = btn.querySelector('.cta-eta');
+    if (etaEl) etaEl.innerText = remaining > 0 ? `ETA ${remaining}s` : 'finishing…';
+    if (elapsed >= etaSec) {
+      clearInterval(timer);
+      finishCommitCategory(bucket, eligibleNow);
+    }
+  }, 250);
+}
+
+/* Called when the simulated loader completes. Tags each eligible user with
+   committed status; takes 2 of them as demo "failures" so the Migration Status
+   screen always shows the full success+failure UX. */
+function finishCommitCategory(bucket, eligibleNow) {
+  state.committing[bucket] = false;
+  const isHasOrg = state.scenario === 'has-org';
+  const newStatus = (bucket === 'verified' && !isHasOrg) ? 'committed-add' : 'committed-invite';
+
+  // Always include up to 2 demo failures per commit so the retry UX is demonstrable.
+  // Keep more users succeeding than failing — failure is the exception, not the norm.
+  const failuresToInject = Math.min(2, Math.max(0, eligibleNow.length - 1));
+  const reasons = ['network timeout', '503 from identity service', 'rate-limited'];
+
+  let succeeded = 0;
+  let failed = 0;
+  eligibleNow.forEach((u, i) => {
+    if (i < failuresToInject) {
+      u.status = 'failed';
+      state.failedUsers.push({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        avatarColor: u.avatarColor,
+        bucket: bucket,
+        reason: reasons[i % reasons.length],
+      });
+      failed++;
+    } else {
+      u.status = newStatus;
+      succeeded++;
+    }
+  });
+
+  state.committedCounts[bucket] += succeeded;
+
+  const verb = bucket === 'verified' && !isHasOrg ? 'added' : 'invited';
+  if (failed > 0) {
+    flashBanner(`${succeeded} users ${verb}, ${failed} failed · check Migration status for retry.`);
+  } else {
+    flashBanner(`✓ ${succeeded} users ${verb} successfully.`);
+  }
+  renderAll();
+  maybeShowStatusButton();
+}
+
+/* Show the "View migration status →" button once at least one user has been committed
+   OR at least one failure exists. */
+function maybeShowStatusButton() {
+  const totalCommitted = state.committedCounts.verified + state.committedCounts.unverified;
+  const hasFailures = state.failedUsers.some(f => !f.resolved);
+  const startBtn = document.getElementById('reviewStartBtn');
+  if (startBtn) startBtn.style.display = (totalCommitted > 0 || hasFailures) ? 'inline-flex' : 'none';
+}
+
+/* ===========================================
+   DOMAIN VERIFICATION REDIRECT FLOW
+   The verify CTA now redirects to the existing Cliq Domains feature
+   instead of doing inline DNS verification.
+   =========================================== */
+
+// Called from any "verify" link/button in the mapping flow.
+// Shows the redirect-notice modal so the admin understands what's about to happen.
+function goToDomains(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  document.getElementById('verifyModal').classList.add('show');
+}
+
+// Modal helpers
+function openVerifyModal(e) { goToDomains(e); }
+function closeVerifyModal(e) {
+  if (e && e.target && !e.target.classList.contains('modal-backdrop')) return;
+  document.getElementById('verifyModal').classList.remove('show');
+}
+document.getElementById('verifyModal').addEventListener('click', closeVerifyModal);
+
+// "Go to Domains →" button — closes modal and navigates to the Domains view.
+function proceedToDomains() {
+  closeVerifyModal({target: document.getElementById('verifyModal')});
+  goScreen('domains');
+}
+
+// From the Domains view back to mapping
+function returnToMapping() {
+  goScreen('mapping');
+}
+
+// Click "Verify" on a domain row inside the Domains view — opens the wizard
+function startInlineVerify(domain) {
+  document.getElementById('verifyWizard').style.display = 'block';
+  document.getElementById('verifyingDomainName').innerText = domain;
+  document.getElementById('verifyingDomainName2').innerText = domain;
+  document.getElementById('verifyWizard').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function cancelInlineVerify() {
+  document.getElementById('verifyWizard').style.display = 'none';
+}
+
+// One-click provider buttons (Cloudflare, GoDaddy, IONOS)
+function oneClickVerify(provider) {
+  flashBanner(`Opening ${provider} authorization in a new tab…`);
+  setTimeout(() => simulateVerifySuccess(), 1200);
+}
+
+// Validate / one-click completes: mark domain as verified, move affected users,
+// then auto-return to mapping with state updated.
+function simulateVerifySuccess() {
+  // Update the Domains-view row visually
+  const row = document.getElementById('verifyingRow');
+  if (row) {
+    row.classList.remove('in-progress');
+    const unverifiedDstatus = row.querySelector('.dstatus.unverified');
+    if (unverifiedDstatus) {
+      unverifiedDstatus.outerHTML = '<div class="dstatus verified"><span class="ico">✓</span> Verified</div>';
+    }
+    const verifyBtn = row.querySelector('.verify-btn-sm');
+    if (verifyBtn) {
+      verifyBtn.outerHTML = '<span style="font-size:11px;color:var(--ink-3)">Just verified</span>';
+    }
+  }
+
+  // Move ALL users of acme-eu.io from unverified to verified (whole domain just got verified)
+  const verifiedDomainName = 'acme-eu.io';
+  const moved = [];
+  state.users.unverified = state.users.unverified.filter(u => {
+    if (u.domain === verifiedDomainName) {
+      u.status = 'newly-verified';
+      // Keep their original email — verification doesn't change emails
+      moved.push(u);
+      return false;
+    }
+    return true;
+  });
+  state.users.verified = state.users.verified.concat(moved);
+
+  // Register the new verified domain so groupByDomain shows it
+  if (!verifiedDomains.find(d => d.name === verifiedDomainName)) {
+    verifiedDomains.push({ name: verifiedDomainName, count: moved.length });
+  }
+
+  // Hide wizard
+  document.getElementById('verifyWizard').style.display = 'none';
+
+  // Flash success + auto-return
+  flashBanner(`✓ ${verifiedDomainName} verified · ${moved.length} users will now be added directly`);
+
+  renderAll();
+  setTimeout(() => {
+    flashBanner('Returning to migration…');
+    setTimeout(() => goScreen('mapping'), 1500);
+  }, 2000);
+}
+
+// Kept for the in-line "Simulate verified" button on the verify-progress banner
+function finishVerifyDemo() {
+  simulateVerifySuccess();
+}
+
+function flashBanner(text) {
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:500;z-index:1000;box-shadow:var(--shadow-lg);animation:fadeIn .25s ease;';
+  div.innerText = text;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3500);
+}
+
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+/* ===========================================
+   SIMULATIONS
+   =========================================== */
+document.querySelectorAll('.sim-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    const what = b.dataset.sim;
+    if (what === 'empty') {
+      state.users.unverified = [];
+      renderAll();
+      flashBanner('Edge case: No unverified-domain users — every email is on a verified domain.');
+    } else if (what === 'alreadyInvited') {
+      state.users.unverified.slice(0, 3).forEach(u => { u.locked = true; u.selected = true; });
+      renderAll();
+      flashBanner('Edge case: 3 invites already sent · those rows are locked.');
+    } else if (what === 'refresh') {
+      refreshCantInvite();
+    } else if (what === 'verifying') {
+      state.verifying = true;
+      const verCta1 = document.getElementById('verifyCta');
+      const verProg1 = document.getElementById('verifyProgress');
+      if (verCta1) verCta1.style.display = 'none';
+      if (verProg1) verProg1.style.display = 'flex';
+      flashBanner('Edge case: Domain verification pending in Cliq Domains (DNS propagation).');
+    } else if (what === 'verified') {
+      // Simulate: admin verified acme-eu.io in the Domains feature
+      state.verifying = false;
+      const verProg = document.getElementById('verifyProgress');
+      if (verProg) verProg.style.display = 'none';
+      const verCta = document.getElementById('verifyCta');
+      if (verCta) verCta.style.display = 'none';
+      const verifiedDomainName = 'acme-eu.io';
+      const moved = [];
+      state.users.unverified = state.users.unverified.filter(u => {
+        if (u.domain === verifiedDomainName) {
+          u.status = 'newly-verified';
+          moved.push(u);
+          return false;
+        }
+        return true;
+      });
+      state.users.verified = state.users.verified.concat(moved);
+      if (!verifiedDomains.find(d => d.name === verifiedDomainName)) {
+        verifiedDomains.push({ name: verifiedDomainName, count: moved.length });
+      }
+      renderAll();
+      flashBanner(`✓ ${verifiedDomainName} just verified · ${moved.length} users moved to "Added directly"`);
+    } else if (what === 'reset') {
+      seedAll();
+      state.expandedGroups = new Set();
+      state.filters = { verified: '', unverified: '' };
+      state.verifying = false;
+      state.committedCounts = { verified: 0, unverified: 0 };
+      state.committing = { verified: false, unverified: false };
+      state.failedUsers = [];
+      const verProg2 = document.getElementById('verifyProgress');
+      const verCta2 = document.getElementById('verifyCta');
+      if (verProg2) verProg2.style.display = 'none';
+      if (verCta2) verCta2.style.display = 'flex';
+      goScreen('mapping');
+      flashBanner('Reset complete.');
+      renderAll();
+    }
+  });
+});
+
+function refreshCantInvite(e) {
+  if (e) e.stopPropagation();
+  // Bulk retry — process every can't-invite user. Simulate ~60% resolve, rest stay.
+  const oOrg = [...state.users.otherOrg];
+  const oDc  = [...state.users.otherDc];
+  const all = [...oOrg, ...oDc];
+
+  if (all.length === 0) {
+    flashBanner('Nothing to retry — every user is already in the right group.');
+    return;
+  }
+
+  let moved = 0;
+  all.forEach(u => {
+    if (Math.random() < 0.6) {
+      moveResolvedUser(u);
+      moved++;
+    }
+  });
+
+  if (moved === 0) {
+    flashBanner('Retry complete — no users could be moved. Ask each user to resolve their conflict and try again.');
+  } else if (moved === all.length) {
+    flashBanner(`✓ All ${moved} users resolved · moved to the right group.`);
+  } else {
+    flashBanner(`✓ ${moved} of ${all.length} users resolved · the rest still have unresolved conflicts.`);
+  }
+  renderAll();
+}
+
+/* Per-row retry — for a single can't-invite user */
+function retryOneCantInvite(bucket, userId, e) {
+  if (e) e.stopPropagation();
+  const arr = state.users[bucket];
+  const idx = arr.findIndex(u => u.id === userId);
+  if (idx === -1) return;
+  const u = arr[idx];
+  // 65% success chance per row
+  const ok = Math.random() < 0.65;
+  if (ok) {
+    moveResolvedUser(u);
+    const target = verifiedDomains.some(d => d.name === u.domain) ? 'Added directly' : 'Will be invited';
+    flashBanner(`✓ ${u.name} (${u.domain}) → "${target}"`);
+  } else {
+    flashBanner(`${u.name} still has an unresolved conflict — ask them to leave their other org first.`);
+  }
+  renderAll();
+}
+
+/* Helper: move a resolved user out of can't-invite into verified or unverified.
+   The routing decision is based on whether the user's domain is verified.
+   The status flag tells renderUserRow which "Moved here" badge to show. */
+function moveResolvedUser(u) {
+  // Remove from whichever can't-invite bucket
+  state.users.otherOrg = state.users.otherOrg.filter(x => x.id !== u.id);
+  state.users.otherDc  = state.users.otherDc.filter(x => x.id !== u.id);
+
+  u.selected = true;
+
+  const isVerified = verifiedDomains.some(d => d.name === u.domain);
+  if (isVerified) {
+    u.status = 'newly-resolved-to-verified';
+    state.users.verified.push(u);
+  } else {
+    u.status = 'newly-resolved-to-unverified';
+    // Their domain isn't verified, so they go into unverified
+    if (!unverifiedDomains.some(d => d.name === u.domain)) {
+      unverifiedDomains.push({ name: u.domain, count: 1 });
+    }
+    state.users.unverified.push(u);
+  }
+}
+
+/* ===========================================
+   MIGRATION STATUS SCREEN — unified success/failure view.
+   Populated from state.committedCounts (successes) and state.failedUsers (failures).
+   Shown after the admin has committed at least one category and navigated here
+   via the footer "View migration status →" button.
+   =========================================== */
+function populateStatusScreen() {
+  const isHasOrg = state.scenario === 'has-org';
+  const addedCount = isHasOrg ? 0 : state.committedCounts.verified;
+  const invitedCount = isHasOrg
+    ? state.committedCounts.verified + state.committedCounts.unverified
+    : state.committedCounts.unverified;
+  const failed = state.failedUsers.filter(f => !f.resolved).length;
+
+  // Summary strip
+  const addedEl = document.getElementById('statusAddedCount');
+  const invitedEl = document.getElementById('statusInvitedCount');
+  const failEl = document.getElementById('statusFailCount');
+  const failWrap = document.getElementById('statusFailNumWrap');
+  if (addedEl) addedEl.innerText = addedCount;
+  if (invitedEl) invitedEl.innerText = invitedCount;
+  if (failEl) failEl.innerText = failed;
+
+  // In Has-Org scenario, hide "Added directly" stat (no one is added directly)
+  const addedLbl = document.getElementById('statusAddedLbl');
+  const addedCell = addedEl ? addedEl.closest('div').parentElement : null;
+  if (addedCell) {
+    if (isHasOrg) {
+      addedCell.style.display = 'none';
+    } else {
+      addedCell.style.display = '';
+    }
+  }
+
+  // Title and subtitle adapt to whether there are failures
+  const title = document.getElementById('statusTitle');
+  const sub = document.getElementById('statusSubtitle');
+  if (failed > 0) {
+    if (title) title.innerText = 'Some users couldn\'t be migrated';
+    if (sub) sub.innerText = `${addedCount + invitedCount} users migrated successfully. The ${failed} below hit transient errors — retry them, or continue with whoever succeeded.`;
+  } else {
+    if (title) title.innerText = 'Migration complete';
+    if (sub) sub.innerText = `All ${addedCount + invitedCount} users migrated successfully. Channel and message data continues migrating in the background.`;
+  }
+
+  // Show the right section (failures vs success-only)
+  const failSection = document.getElementById('statusFailSection');
+  const okSection = document.getElementById('statusOkSection');
+  if (failSection) failSection.style.display = failed > 0 ? 'block' : 'none';
+  if (okSection) okSection.style.display = failed > 0 ? 'none' : 'block';
+
+  // Populate the failures list
+  const errList = document.getElementById('errList');
+  if (errList && failed > 0) {
+    errList.innerHTML = state.failedUsers
+      .filter(f => !f.resolved)
+      .map((f, i) => `
+        <div class="err-row" data-id="${f.id}">
+          <div class="user-id">
+            <div class="avatar ${f.avatarColor}">${initials(f.name)}</div>
+            <div class="user-meta">
+              <div class="user-name">${f.name}</div>
+              <div class="user-email mono">${f.email}</div>
+            </div>
+          </div>
+          <button class="btn btn-link btn-small" onclick="retryFailedUser('${f.id}')">Retry</button>
+          <span class="err-status mono">⨯ ${f.reason}</span>
+        </div>
+      `).join('');
+  }
+
+  // Retry-all button count
+  const retryCount = document.getElementById('retryAllCount');
+  const retryBtn = document.getElementById('retryAllBtn');
+  if (retryCount) retryCount.innerText = failed;
+  if (retryBtn) retryBtn.disabled = (failed === 0);
+}
+
+/* Retry a single failed user — 70% success rate simulated */
+function retryFailedUser(userId) {
+  const f = state.failedUsers.find(x => x.id === userId);
+  if (!f || f.resolved) return;
+  const ok = Math.random() > 0.3;
+  setTimeout(() => {
+    if (ok) {
+      f.resolved = true;
+      // Also flip the user's status in their original bucket back to committed
+      const userInBucket = state.users[f.bucket].find(u => u.id === userId);
+      if (userInBucket) {
+        userInBucket.status = (f.bucket === 'verified' && state.scenario !== 'has-org')
+          ? 'committed-add' : 'committed-invite';
+      }
+      state.committedCounts[f.bucket]++;
+      flashBanner(`✓ ${f.name} retried successfully.`);
+    } else {
+      f.reason = 'failed again · contact support';
+      flashBanner(`${f.name} still failing — try again or skip.`);
+    }
+    populateStatusScreen();
+  }, 400);
+}
+
+/* Retry every failing user at once — sequential simulated retries */
+function retryAll() {
+  const failing = state.failedUsers.filter(f => !f.resolved);
+  failing.forEach((f, i) => {
+    setTimeout(() => retryFailedUser(f.id), 300 + i * 250);
+  });
+  if (failing.length > 0) {
+    setTimeout(() => flashBanner('Retry complete — see results above.'), 300 + failing.length * 250 + 100);
+  }
+}
+
+/* Continue migration with whoever succeeded — failures stay queued for later */
+function continueWithSuccessful() {
+  const succeeded = state.committedCounts.verified + state.committedCounts.unverified;
+  const stillFailing = state.failedUsers.filter(f => !f.resolved).length;
+  if (stillFailing > 0) {
+    flashBanner(`Continuing with ${succeeded} users. ${stillFailing} failing ${stillFailing === 1 ? 'user' : 'users'} moved to retry queue.`);
+  } else {
+    flashBanner(`Migration complete — all ${succeeded} users in Cliq.`);
+  }
+  setTimeout(() => goScreen('dashboard'), 800);
+}
+
+/* ===========================================
+   INIT
+   =========================================== */
+renderAll();
+goScreen('mapping');
+</script>
+</body>
+</html>
