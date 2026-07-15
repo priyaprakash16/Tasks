@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cliq · Audit Logs — File Actions (prototype)</title>
+<style>
+:root{
+  --bg:#F7F8FA;--panel:#fff;--sidebar:#fff;--border:#E7EAF0;--line:#EDF0F4;
+  --text:#1F2430;--text2:#6B7280;--text3:#9AA1AD;
+  --blue:#2E6BE6;--blue-soft:#EAF1FE;--hover:#F5F8FF;--active:#EAF1FE;
+  --green:#1E7B45;--green-soft:#E6F4EA;--purple:#7C3AED;--purple-soft:#F3E9FF;
+  --indigo:#4F46E5;--indigo-soft:#ECEBFE;--teal:#0B7285;--teal-soft:#E1F1F4;
+  --red:#E11D48;--red-soft:#FCE7EC;--amber:#9A6A00;--amber-soft:#FBF0D9;
+  --slate:#475569;--slate-soft:#EEF1F5;--source:#DC2626;
+  --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  --shadow:0 10px 40px rgba(24,39,75,.14),0 2px 8px rgba(24,39,75,.08);
+}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+.app{display:grid;grid-template-columns:236px 1fr;height:100vh;overflow:hidden}
+.side{background:var(--sidebar);border-right:1px solid var(--border);overflow-y:auto;padding-bottom:24px}
+.brand{display:flex;gap:10px;align-items:center;padding:16px 16px 14px}
+.brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#2E6BE6,#1a4fb0);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+.brand b{font-size:13.5px;display:block;line-height:1.1}.brand span{font-size:11px;color:var(--text2)}
+.navsec{margin-top:10px}
+.navsec .lbl{font-size:10.5px;letter-spacing:.06em;color:var(--text3);text-transform:uppercase;padding:8px 18px 4px;font-weight:600}
+.nav{display:flex;align-items:center;gap:10px;padding:7px 18px;color:#3d4353;cursor:pointer;font-size:13px;border-left:3px solid transparent}
+.nav:hover{background:var(--hover)}
+.nav.active{background:var(--active);color:var(--blue);border-left-color:var(--blue);font-weight:600}
+.main{overflow-y:auto}
+.head{padding:20px 26px 6px;display:flex;justify-content:space-between;align-items:flex-start}
+.head h1{font-size:19px;margin:0 0 3px}.head p{margin:0;color:var(--text2);font-size:13px}
+.updated{font-size:11.5px;color:var(--text3)}
+.toolbar{padding:14px 26px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.toolbar h2{font-size:15px;margin:0;display:flex;align-items:center;gap:9px}
+.pill{background:var(--blue-soft);color:var(--blue);font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
+.grow{flex:1}
+.search{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);border-radius:9px;padding:7px 11px;min-width:170px;color:var(--text3)}
+.search input{border:0;outline:0;font-size:13px;width:100%;color:var(--text);background:transparent}
+.btn{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-size:13px;color:#3d4353;cursor:pointer;font-family:inherit}
+.btn:hover{background:var(--hover)}.btn svg{width:15px;height:15px;stroke-width:1.9}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.seg{display:inline-flex;background:#fff;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:7px 11px;font-size:12.5px;color:var(--text2);cursor:pointer;font-family:inherit;border-right:1px solid var(--border)}
+.seg button:last-child{border-right:0}.seg button.on{background:var(--blue);color:#fff}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#3d4353;cursor:pointer;user-select:none}
+.switch{width:34px;height:19px;border-radius:20px;background:#cfd6e0;position:relative;transition:.15s;flex:none}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.15s}
+.toggle.on .switch{background:var(--blue)}.toggle.on.teal .switch{background:var(--teal)}
+.toggle.on .switch::after{left:17px}
+.newtag{display:none;align-items:center;gap:4px;background:var(--teal-soft);color:var(--teal);font-size:9.5px;font-weight:700;letter-spacing:.03em;padding:1px 6px;border-radius:20px;text-transform:uppercase;vertical-align:middle}
+.show-new .newtag{display:inline-flex}
+.tablewrap{margin:6px 26px 40px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;min-width:860px}
+thead th{text-align:left;font-size:11px;letter-spacing:.03em;color:var(--text2);text-transform:uppercase;font-weight:600;padding:12px 16px;background:#FBFCFE;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s}
+tbody tr:last-child{border-bottom:0}tbody tr:hover{background:var(--hover)}
+td{padding:11px 16px;vertical-align:middle}
+.dt .d{font-weight:600;font-size:12.5px}.dt .t{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px}
+.act{display:flex;align-items:center;gap:9px}
+.act .ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none}
+.act .ic svg{width:15px;height:15px;stroke-width:1.9}
+.act .lab{font-weight:600;font-size:12.5px}
+.who .nm{font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:7px}.who .loc{font-size:11px;color:var(--text2);margin-top:2px}
+.badge{font-size:9.5px;font-weight:700;letter-spacing:.02em;padding:1.5px 7px;border-radius:20px;text-transform:lowercase}
+.b-user{background:var(--slate-soft);color:var(--slate)}.b-guest{background:#EAF6F1;color:#0f7a56}
+.b-admin{background:var(--red-soft);color:var(--red)}.b-system{background:var(--amber-soft);color:var(--amber)}.b-bot{background:var(--indigo-soft);color:var(--indigo)}
+.kindcell{font-weight:600;font-size:12.5px;color:#3d4353;display:flex;align-items:center;gap:6px}
+.kindcell svg{width:12px;height:12px;color:var(--text3)}
+.tags{margin-top:3px}
+.details{font-size:12.5px;color:#3d4353}
+.slabel{display:none;font-size:9px;font-weight:700;color:var(--teal);background:var(--teal-soft);padding:1px 6px;border-radius:5px;margin-left:5px}
+.show-new .slabel{display:inline-block}
+.show-new tr[data-new="1"]{background:linear-gradient(90deg,rgba(11,114,133,.05),transparent 40%)}
+.show-new tr[data-new="1"] td:first-child{border-left:3px solid var(--teal)}
+.rownew{display:none}.show-new .rownew{display:inline-flex;margin-left:6px}
+.statuspill{display:none;font-size:9px;font-weight:700;padding:1px 7px;border-radius:20px;margin-left:2px;text-transform:uppercase}
+.show-new .statuspill{display:inline-block}
+.sp-blocked{background:var(--red-soft);color:var(--red)}.sp-anomaly{background:var(--amber-soft);color:var(--amber)}.sp-failed{background:var(--red-soft);color:var(--red)}.sp-planned{background:var(--amber-soft);color:var(--amber)}
+.tfoot{padding:12px 16px;font-size:12px;color:var(--text2);display:flex;justify-content:space-between;background:#FBFCFE;border-top:1px solid var(--border);gap:12px;flex-wrap:wrap}
+.i-shared{background:var(--green-soft);color:var(--green)}.i-viewed{background:var(--blue-soft);color:var(--blue)}
+.i-downloaded{background:var(--teal-soft);color:var(--teal)}.i-forwarded{background:var(--indigo-soft);color:var(--indigo)}
+.i-modified{background:var(--purple-soft);color:var(--purple)}.i-deleted{background:var(--slate-soft);color:var(--slate)}
+.i-blocked{background:var(--red-soft);color:var(--red)}.i-planned{background:var(--amber-soft);color:var(--amber)}
+.i-permission{background:var(--indigo-soft);color:var(--indigo)}.i-anomaly{background:var(--amber-soft);color:var(--amber)}
+.i-caption{background:var(--amber-soft);color:var(--amber)}.i-link{background:var(--slate-soft);color:var(--slate)}
+.i-summary{background:var(--blue-soft);color:var(--blue)}.i-extint{background:var(--teal-soft);color:var(--teal)}
+.i-failed{background:var(--red-soft);color:var(--red)}.i-bot{background:var(--indigo-soft);color:var(--indigo)}.i-preview{background:var(--blue-soft);color:var(--blue)}
+.overlay{position:fixed;inset:0;background:rgba(20,28,45,.42);backdrop-filter:blur(2px);display:none;align-items:flex-start;justify-content:center;padding:34px 16px;z-index:50;overflow-y:auto}
+.overlay.open{display:flex}
+.dialog{background:#fff;border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:720px;overflow:hidden;animation:pop .16s ease}
+@keyframes pop{from{transform:translateY(8px) scale(.99);opacity:0}to{transform:none;opacity:1}}
+.mhead{display:flex;align-items:center;gap:11px;padding:16px 22px;border-bottom:1px solid var(--line)}
+.mhead .mic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}.mhead .mic svg{width:17px;height:17px;stroke-width:1.9}
+.mhead h3{margin:0;font-size:16px}.mhead .x{margin-left:auto;cursor:pointer;color:var(--text3);width:30px;height:30px;display:grid;place-items:center;border-radius:8px}
+.mhead .x:hover{background:var(--slate-soft);color:var(--text)}
+.mbody{padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:18px 26px}
+.mbody .full{grid-column:1 / -1}
+.sect h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);display:flex;align-items:center;gap:8px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.kv:last-child{border-bottom:0}.kv .k{color:var(--text2)}.kv .v{font-weight:600;text-align:right}
+.mono{font-family:var(--mono);font-size:12px}
+.abadge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.card{background:#FAFBFD;border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+.card .cn{display:flex;align-items:center;gap:10px}.card .cn svg{width:20px;height:20px;color:var(--text2)}.card .cn b{font-size:13.5px}.card .cn span{font-size:11.5px;color:var(--text2)}
+.prevbox{border:1px dashed var(--border);border-radius:9px;padding:16px;text-align:center;color:var(--text2);font-size:12px;background:#fff}
+.stats{display:flex;gap:12px}.stat{flex:1;background:#FAFBFD;border:1px solid var(--line);border-radius:11px;padding:13px;text-align:center}.stat b{font-size:22px;display:block}.stat span{font-size:11.5px;color:var(--text2)}
+.chain{display:flex;flex-direction:column}
+.hop{display:flex;align-items:center;gap:10px;padding:7px 0;position:relative}
+.hop .dot{width:10px;height:10px;border-radius:50%;background:var(--blue);flex:none;z-index:1}
+.hop.ext .dot{background:var(--red)}
+.hop .line{position:absolute;left:4px;top:17px;bottom:-7px;width:2px;background:var(--line)}.hop:last-child .line{display:none}
+.hop .nm{font-weight:600}.hop .tg{font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;margin-left:auto}
+.tg-cur{background:var(--blue-soft);color:var(--blue)}.tg-ext{background:var(--red-soft);color:var(--red)}
+.terminus{font-size:11.5px;color:var(--text2);padding:8px 0 0;border-top:1px dashed var(--line);margin-top:6px}
+.panel{border-radius:12px;padding:13px 15px}
+.panel.teal{background:var(--teal-soft);border:1px solid #bfe0e6}.panel.red{background:var(--red-soft);border:1px solid #f4c6d2}
+.panel.amber{background:var(--amber-soft);border:1px solid #ecd9a6}.panel.purple{background:var(--purple-soft);border:1px solid #e0cdfb}
+.panel h4{color:var(--teal)}.panel.red h4{color:var(--red)}.panel.amber h4{color:var(--amber)}.panel.purple h4{color:var(--purple)}
+.panel .note{font-size:12px;color:#4b5563;margin-top:8px;line-height:1.5}
+.modes{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.modes li{display:flex;align-items:center;gap:8px;font-size:12.5px;background:#fff;border:1px solid #ecd9a6;border-radius:8px;padding:7px 10px}
+.modes .n{width:18px;height:18px;border-radius:50%;background:var(--amber);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;flex:none}
+.link{color:var(--blue);font-weight:600;cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:5px}.link:hover{text-decoration:underline}
+.list{max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:9px}
+.list .li{display:flex;justify-content:space-between;padding:7px 11px;font-size:12.5px;border-bottom:1px solid var(--line)}.list .li:last-child{border-bottom:0}
+.mfoot{display:flex;align-items:center;gap:10px;padding:14px 22px;border-top:1px solid var(--line);background:#FBFCFE}
+.fsect{margin-bottom:15px}.fsect>label{font-size:12px;font-weight:600;color:#3d4353;display:block;margin-bottom:7px}
+.fin{width:100%;border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;color:var(--text);background:#fff}
+.chks{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.chk{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#3d4353;cursor:pointer}.chk input{width:15px;height:15px;accent-color:var(--blue)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.v2block{background:var(--teal-soft);border:1px dashed #9cccd4;border-radius:11px;padding:13px 14px;margin-bottom:15px}
+.v2block>.h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin-bottom:11px}
+@media(max-width:880px){.app{grid-template-columns:1fr}.side{display:none}.mbody{grid-template-columns:1fr}.chks{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body class="show-new">
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="logo">A</div><div><b>Admin Panel</b><span>Data Administration</span></div></div>
+    <div class="navsec"><div class="lbl">Users &amp; Profiles</div><div class="nav">Users</div><div class="nav">Organization</div><div class="nav">Permissions</div></div>
+    <div class="navsec"><div class="lbl">Resource Management</div><div class="nav">Internal Apps</div><div class="nav">Extensions</div><div class="nav">Channels</div><div class="nav">Devices</div></div>
+    <div class="navsec"><div class="lbl">Customization</div><div class="nav">User Profile &amp; Settings</div><div class="nav">Themes</div><div class="nav">Assets</div></div>
+    <div class="navsec"><div class="lbl">Data Administration</div><div class="nav">Export</div><div class="nav active">Audit Logs</div><div class="nav">Import External Data</div><div class="nav">eDiscovery</div><div class="nav">Data Loss Prevention</div></div>
+    <div class="navsec"><div class="lbl">Reports</div><div class="nav">Analytics</div></div>
+  </aside>
+  <main class="main">
+    <div class="head"><div><h1>Data Administration</h1><p>Monitor and analyze file activities across all channels and conversations</p></div><div class="updated">Last updated: 10/07/2026, 19:42</div></div>
+    <div class="toolbar">
+      <h2>Audit Logs &nbsp;›&nbsp; File Actions <span class="pill" id="count">— entries</span></h2>
+      <span class="grow"></span>
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M21 21l-4-4" stroke-width="2"/></svg><input placeholder="Search logs…"/></div>
+      <div class="seg" id="statusSeg"><button class="on" data-s="all">All</button><button data-s="blocked">Blocked <span class="newtag">v2</span></button><button data-s="anomaly">Anomalies <span class="newtag">v2</span></button></div>
+      <label class="toggle teal" id="crossTog"><span class="switch"></span> Cross-org only <span class="newtag">v2</span></label>
+      <label class="toggle teal" id="leftTog"><span class="switch"></span> Left the org <span class="newtag">v2</span></label>
+      <button class="btn" onclick="openFilter()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 5h18l-7 8v6l-4 2v-8z" stroke-width="2"/></svg> Custom Filter</button>
+      <label class="toggle on" id="v2Tog"><span class="switch"></span> Highlight v2 additions</label>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Date &amp; Time</th><th>Activity</th><th>Performed By</th><th>Chat Type</th><th>Activity Details</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="tfoot"><span id="showing">Showing 0 of 0 entries</span><span>Deletions are permanent and apply to everyone; the audit trail is always retained. Log is read-only.</span></div>
+    </div>
+  </main>
+</div>
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()"><div class="dialog" id="dialog"></div></div>
+<script>
+const ICON={
+ shared:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v13M12 3l-4 4M12 3l4 4M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4" stroke-width="2"/></svg>',
+ viewed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>',
+ preview:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" stroke-width="2"/><path d="M14 3v5h5" stroke-width="2"/><circle cx="11" cy="14" r="2.1" stroke-width="1.5"/><path d="M12.6 15.6L14 17" stroke-width="1.5"/></svg>',
+ downloaded:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v13M12 16l-4-4M12 16l4-4M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4" stroke-width="2"/></svg>',
+ forwarded:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 17V9a2 2 0 012-2h9M15 4l5 5-5 5" stroke-width="2"/></svg>',
+ modified:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h4L18 10l-4-4L4 16v4z" stroke-width="2"/><path d="M14 6l4 4" stroke-width="2"/></svg>',
+ crop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2v14a2 2 0 002 2h14M2 6h14a2 2 0 012 2v14" stroke-width="2"/></svg>',
+ swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h13l-3-3M20 17H7l3 3" stroke-width="2"/></svg>',
+ deleted:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke-width="2"/></svg>',
+ blocked:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M6 6l12 12" stroke-width="2"/></svg>',
+ permission:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="11" width="14" height="9" rx="2" stroke-width="2"/><path d="M8 11V8a4 4 0 018 0v3" stroke-width="2"/></svg>',
+ anomaly:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l9 16H3z" stroke-width="2"/><path d="M12 10v4M12 17h.01" stroke-width="2"/></svg>',
+ caption:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h10M4 18h7" stroke-width="2"/></svg>',
+ link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 7h3a4 4 0 010 8h-3M10 17H7a4 4 0 010-8h3M8 12h8" stroke-width="2"/></svg>',
+ summary:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z" stroke-width="2"/></svg>',
+ media:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M10 9l5 3-5 3z" stroke-width="2"/></svg>',
+ extint:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 8h13l-3-3M21 16H8l3 3" stroke-width="2"/></svg>',
+ failed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M12 7v6M12 16h.01" stroke-width="2"/></svg>',
+ bot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="8" width="14" height="10" rx="2" stroke-width="2"/><path d="M12 8V5M9 13h.01M15 13h.01" stroke-width="2"/></svg>',
+ file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" stroke-width="2"/><path d="M14 3v5h5" stroke-width="2"/></svg>',
+ ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4" stroke-width="2"/></svg>',
+ hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 109-9 9 9 0 00-9 9zM3 12H1M12 7v5l3 2" stroke-width="2"/></svg>'
+};
+// type -> [iconKey, iconClass, chipLabel]
+const TM={
+ shared:['shared','i-shared','SHARED'], shared_wd:['shared','i-shared','SHARED · WORKDRIVE'], shared_sheet:['shared','i-shared','SHARED · ZOHO SHEET'],
+ viewed:['viewed','i-viewed','VIEWED'], preview:['preview','i-preview','PREVIEWED'], summary:['summary','i-summary','AI SUMMARY VIEWED'], media:['media','i-viewed','VIEWED · PLAYED'],
+ downloaded:['downloaded','i-downloaded','DOWNLOADED'], forwarded:['forwarded','i-forwarded','FORWARDED'], forwarded_multi:['forwarded','i-forwarded','FORWARDED · MULTI-HOP'],
+ annotated:['modified','i-modified','MODIFIED · ANNOTATED'], cropped:['crop','i-modified','MODIFIED · CROPPED'],
+ replaced:['swap','i-modified','MODIFIED · REPLACED'], content:['modified','i-modified','MODIFIED · CONTENT EDITED'],
+ caption:['caption','i-caption','CAPTION EDITED'], permission:['permission','i-permission','PERMISSION CHANGED'], linkcopy:['link','i-link','LINK COPIED'],
+ deleted:['deleted','i-deleted','DELETED'], dlp:['blocked','i-planned','DLP ENFORCEMENT'], denied:['blocked','i-blocked','ACCESS DENIED'],
+ anomaly:['anomaly','i-anomaly','ANOMALY'], bulk:['viewed','i-viewed','BULK VIEWS'],
+ extint:['extint','i-extint','EXTERNAL → INTERNAL'], failed:['failed','i-failed','TRANSFER FAILED'], bot:['bot','i-bot','BOT / AUTOMATION']
+};
+const KIND={internal:'Internal Channel',external:'External Channel',contact:'Contact DM',guest:'Guest Chat',mix:'Guest → Internal'};
+const DLP_MODES=['Block','Block & allow only after approval','Block & allow with override','Allow & audit'];
+
+// ---- dataset (Cliq-accurate: no soft delete / expiry / offline / rename / restore) ----
+const E=[
+ {t:'shared',date:'10 Jul',time:'10:00 AM',who:'User A',role:'user',loc:'Denver, US',ip:'192.168.1.108',file:'roadmap_v1.pdf',meta:'640 KB · PDF',fid:'file-road',ftype:'PDF',kind:'internal',ctx:'#team-updates',ext:false,co:false,st:'success',det:'Shared roadmap_v1.pdf in #team-updates',stats:{v:12,d:3},logical:'road'},
+ {t:'shared',date:'10 Jul',time:'10:10 AM',who:'User A',role:'user',loc:'Denver, US',ip:'192.168.1.108',file:'contract.docx',meta:'820 KB · DOCX',fid:'file-contract',ftype:'DOCX',lbl:'Confidential',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'success',det:'Shared contract.docx in #client-collab',stats:{v:3,d:1},logical:'contract'},
+ {t:'shared',date:'10 Jul',time:'10:20 AM',who:'User A',role:'user',loc:'Denver, US',ip:'192.168.1.108',file:'timeline.xlsx',meta:'96 KB · XLSX',fid:'file-time',ftype:'XLSX',kind:'contact',ctx:'DM with User B',ext:true,co:true,st:'success',det:'Shared timeline.xlsx in DM with User B',stats:{v:2,d:1},logical:'time'},
+ {t:'shared',date:'10 Jul',time:'10:30 AM',who:'User A',role:'user',loc:'Denver, US',ip:'192.168.1.108',file:'agenda.png',meta:'340 KB · PNG',fid:'file-agenda',ftype:'PNG',kind:'guest',ctx:'guest chat with vendor',ext:true,co:true,st:'success',det:'Shared agenda.png in guest chat with vendor',stats:{v:4,d:2},logical:'agenda'},
+ {t:'viewed',date:'10 Jul',time:'10:40 AM',who:'User B',role:'user',loc:'Austin, US',ip:'192.168.1.106',file:'roadmap_v1.pdf',meta:'640 KB · PDF',fid:'file-road',ftype:'PDF',kind:'internal',ctx:'#team-updates',ext:false,co:false,st:'success',det:'Viewed roadmap_v1.pdf in #team-updates',dur:'5s',logical:'road'},
+ {t:'preview',date:'10 Jul',time:'10:44 AM',who:'User B',role:'user',loc:'Austin, US',ip:'192.168.1.106',file:'roadmap_v1.pdf',meta:'640 KB · PDF',fid:'file-road',ftype:'PDF',kind:'internal',ctx:'#team-updates',ext:false,co:false,st:'success',isNew:1,det:'Previewed roadmap_v1.pdf via “click to preview” in #team-updates',dur:'8s',logical:'road'},
+ {t:'viewed',date:'10 Jul',time:'10:50 AM',who:'User C',role:'user',loc:'Miami, US',ip:'192.168.1.107',file:'contract.docx',meta:'820 KB · DOCX',fid:'file-contract',ftype:'DOCX',lbl:'Confidential',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'success',det:'Viewed contract.docx in #client-collab',dur:'12s',logical:'contract'},
+ {t:'viewed',date:'10 Jul',time:'11:00 AM',who:'User D',role:'user',loc:'Chicago, US',ip:'192.168.1.130',file:'timeline.xlsx',meta:'96 KB · XLSX',fid:'file-time',ftype:'XLSX',kind:'contact',ctx:'DM with User A',ext:true,co:true,st:'success',det:'Viewed timeline.xlsx in DM with User A',dur:'8s',logical:'time'},
+ {t:'preview',date:'10 Jul',time:'11:05 AM',who:'User C',role:'user',loc:'Miami, US',ip:'192.168.1.107',file:'contract.docx',meta:'820 KB · DOCX',fid:'file-contract',ftype:'DOCX',lbl:'Confidential',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'success',isNew:1,det:'Previewed contract.docx via “click to preview” in #client-collab',dur:'10s',logical:'contract'},
+ {t:'viewed',date:'10 Jul',time:'11:10 AM',who:'Guest User E',role:'guest',loc:'London, UK',ip:'203.0.113.10',file:'agenda.png',meta:'340 KB · PNG',fid:'file-agenda',ftype:'PNG',kind:'guest',ctx:'guest chat',ext:true,co:true,st:'success',det:'Viewed agenda.png in guest chat',dur:'4s',logical:'agenda'},
+ {t:'downloaded',date:'10 Jul',time:'11:20 AM',who:'User F',role:'user',loc:'Seattle, US',ip:'192.168.1.140',file:'design.zip',meta:'14.2 MB · ZIP',fid:'file-design',ftype:'ZIP',kind:'internal',ctx:'#design-team',ext:false,co:false,st:'success',det:'Downloaded design.zip in #design-team',dest:'Device',logical:'design'},
+ {t:'downloaded',date:'10 Jul',time:'11:30 AM',who:'User G',role:'user',loc:'Boston, US',ip:'192.168.1.150',file:'budget.csv',meta:'210 KB · CSV',fid:'file-budget',ftype:'CSV',kind:'external',ctx:'#partner-review',ext:true,co:true,st:'success',det:'Downloaded budget.csv in #partner-review',dest:'Device',leftorg:true,logical:'budget'},
+ {t:'downloaded',date:'10 Jul',time:'11:40 AM',who:'User H',role:'user',loc:'Denver, US',ip:'192.168.1.160',file:'timeline.xlsx',meta:'96 KB · XLSX',fid:'file-time',ftype:'XLSX',kind:'contact',ctx:'DM with User A',ext:true,co:true,st:'success',det:'Downloaded timeline.xlsx in DM with User A',dest:'Device',leftorg:true,logical:'time'},
+ {t:'downloaded',date:'10 Jul',time:'11:50 AM',who:'Guest User I',role:'guest',loc:'Berlin, DE',ip:'203.0.113.44',file:'agenda.png',meta:'340 KB · PNG',fid:'file-agenda',ftype:'PNG',kind:'guest',ctx:'guest chat',ext:true,co:true,st:'success',det:'Downloaded agenda.png in guest chat',dest:'Device',leftorg:true,logical:'agenda'},
+ {t:'forwarded',date:'10 Jul',time:'12:00 PM',who:'User A',role:'user',loc:'Denver, US',ip:'192.168.1.108',file:'design.zip',meta:'14.2 MB · ZIP',fid:'file-design',ftype:'ZIP',kind:'internal',ctx:'#design-team → DM with User B',ext:false,co:false,st:'success',det:'Forwarded design.zip to User B (DM) from #design-team',chain:[['User A',0],['User B (Current)','cur']],logical:'design'},
+ {t:'forwarded',date:'10 Jul',time:'12:10 PM',who:'User C',role:'user',loc:'Miami, US',ip:'192.168.1.107',file:'contract.docx',meta:'820 KB · DOCX',fid:'file-contract',ftype:'DOCX',lbl:'Confidential',kind:'external',ctx:'#client-collab → #legal-ext',ext:true,co:true,st:'success',det:'Forwarded contract.docx to #legal-ext from #client-collab',chain:[['User A',0],['User C',1],['#legal-ext (Current)','cur']],terminus:'Forwarded within an external channel.',logical:'contract'},
+ {t:'forwarded',date:'10 Jul',time:'12:20 PM',who:'User D',role:'user',loc:'Chicago, US',ip:'192.168.1.130',file:'timeline.xlsx',meta:'96 KB · XLSX',fid:'file-time',ftype:'XLSX',kind:'contact',ctx:'DM with User A → DM with User E',ext:true,co:true,st:'success',det:'Forwarded timeline.xlsx from DM with User A to DM with User E',chain:[['User A',0],['User D',0],['User E (Current)','cur']],logical:'time'},
+ {t:'forwarded',date:'10 Jul',time:'12:30 PM',who:'Guest User F',role:'guest',loc:'London, UK',ip:'203.0.113.10',file:'agenda.png',meta:'340 KB · PNG',fid:'file-agenda',ftype:'PNG',kind:'guest',ctx:'vendor guest chat → another vendor',ext:true,co:true,st:'success',leftorg:true,det:'Forwarded agenda.png to another vendor guest chat',chain:[['User A',0],['Guest F',1],['Vendor 2 (Current)','cur']],terminus:'⚠ Forwarded to another external vendor — file left the org boundary.',logical:'agenda'},
+ {t:'replaced',date:'10 Jul',time:'12:40 PM',who:'User G',role:'user',loc:'Boston, US',ip:'192.168.1.150',file:'roadmap_v1.pdf',meta:'640 KB · PDF',fid:'file-road',ftype:'PDF',kind:'internal',ctx:'#product-roadmap',ext:false,co:false,st:'success',det:'Replaced roadmap_v1.pdf with a new version in #product-roadmap',repl:{from:'roadmap_v1.pdf',to:'roadmap_v2.pdf',note:'PDF re-uploaded as a new version (PDFs are not content-editable in-app)'},logical:'road'},
+ {t:'content',date:'10 Jul',time:'12:50 PM',who:'User H',role:'user',loc:'Denver, US',ip:'192.168.1.160',file:'contract.docx',meta:'820 KB · DOCX',fid:'file-contract',ftype:'DOCX',lbl:'Confidential',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'success',det:'Edited contract.docx (content) → v2 in #client-collab',mod:{sub:'Content edited',fromV:'v1',toV:'v2',delta:'+8 KB',cls:'Zoho Writer / WorkDrive'},logical:'contract'},
+ {t:'content',date:'10 Jul',time:'01:00 PM',who:'User I',role:'user',loc:'Austin, US',ip:'192.168.1.106',file:'timeline.xlsx',meta:'96 KB · XLSX',fid:'file-time',ftype:'XLSX',kind:'contact',ctx:'DM with User A',ext:true,co:true,st:'success',det:'Edited timeline.xlsx (content) → v3 in DM with User A',mod:{sub:'Content edited',fromV:'v2',toV:'v3',delta:'+3 KB',cls:'Zoho Sheet'},logical:'time'},
+ {t:'annotated',date:'10 Jul',time:'01:10 PM',who:'Guest User J',role:'guest',loc:'London, UK',ip:'203.0.113.10',file:'agenda.png',meta:'340 KB · PNG',fid:'file-agenda',ftype:'PNG',kind:'guest',ctx:'vendor guest chat',ext:true,co:true,st:'success',det:'Annotated agenda.png (shapes, text) → v2 in vendor guest chat',ann:{marks:'shapes, text',toV:'v2'},logical:'agenda'},
+ {t:'deleted',date:'10 Jul',time:'01:20 PM',who:'User A',role:'user',loc:'Denver, US',ip:'192.168.1.108',file:'roadmap_v1.pdf',meta:'640 KB · PDF',fid:'file-road',ftype:'PDF',kind:'internal',ctx:'#team-updates',ext:false,co:false,st:'success',det:'Deleted roadmap_v1.pdf from #team-updates (for everyone)',del:{who:'Self (owner)',reason:'User action',policy:'—'},logical:'road'},
+ {t:'deleted',date:'10 Jul',time:'01:30 PM',who:'Channel Admin',role:'admin',loc:'Server Admin',ip:'10.0.0.2',file:'contract.docx',meta:'820 KB · DOCX',fid:'file-contract',ftype:'DOCX',lbl:'Confidential',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'success',det:'Deleted contract.docx from #client-collab (admin; shared by another user)',del:{who:'Channel / team moderator',reason:'Admin moderation',policy:'—'},logical:'contract'},
+ {t:'deleted',date:'10 Jul',time:'01:40 PM',who:'User B',role:'user',loc:'Austin, US',ip:'192.168.1.106',file:'timeline.xlsx',meta:'96 KB · XLSX',fid:'file-time',ftype:'XLSX',kind:'contact',ctx:'DM with User A',ext:true,co:true,st:'success',det:'Deleted timeline.xlsx from DM (for everyone)',del:{who:'Recipient',reason:'User action',policy:'—'},logical:'time'},
+ {t:'deleted',date:'10 Jul',time:'01:50 PM',who:'Guest User K',role:'guest',loc:'London, UK',ip:'203.0.113.10',file:'agenda.png',meta:'340 KB · PNG',fid:'file-agenda',ftype:'PNG',kind:'guest',ctx:'guest chat',ext:true,co:true,st:'success',det:'Deleted agenda.png from guest chat (for everyone)',del:{who:'Self (guest / owner)',reason:'User action',policy:'—'},logical:'agenda'},
+ {t:'annotated',date:'10 Jul',time:'02:00 PM',who:'User L',role:'user',loc:'Seattle, US',ip:'192.168.1.170',file:'diagram.png',meta:'510 KB · PNG',fid:'file-diagram',ftype:'PNG',kind:'internal',ctx:'#design-team',ext:false,co:false,st:'success',isNew:1,det:'Annotated diagram.png (shapes, text, numbering) → v2 in #design-team',ann:{marks:'shapes, text, numbering',toV:'v2'}},
+ {t:'cropped',date:'10 Jul',time:'02:05 PM',who:'User M',role:'user',loc:'Miami, US',ip:'192.168.1.180',file:'banner.jpg',meta:'1.2 MB · JPG',fid:'file-banner',ftype:'JPG',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'success',isNew:1,det:'Cropped banner.jpg → v2 in #client-collab',ann:{marks:'crop',toV:'v2'}},
+ {t:'replaced',date:'10 Jul',time:'02:10 PM',who:'User N',role:'user',loc:'Denver, US',ip:'192.168.1.190',file:'logo.png',meta:'88 KB · PNG',fid:'file-logo',ftype:'PNG',kind:'contact',ctx:'DM with User O',ext:true,co:true,st:'success',isNew:1,det:'Replaced logo.png with logo_final.png in DM with User O',repl:{from:'logo.png',to:'logo_final.png',note:'Old image removed, a different image attached'}},
+ {t:'content',date:'10 Jul',time:'02:20 PM',who:'User P',role:'user',loc:'Boston, US',ip:'192.168.1.200',file:'Q3_plan (Zoho Sheet)',meta:'Zoho Sheet',fid:'file-q3',ftype:'SHEET',kind:'internal',ctx:'#finance',ext:false,co:false,st:'success',isNew:1,det:'Edited Q3_plan (Zoho Sheet) → v4 in #finance',mod:{sub:'Content edited',fromV:'v3',toV:'v4',delta:'+2 rows',cls:'Zoho Sheet · version history in WorkDrive'}},
+ {t:'caption',date:'10 Jul',time:'02:30 PM',who:'User Q',role:'user',loc:'London, UK',ip:'203.0.113.10',file:'agenda.png',meta:'340 KB · PNG',fid:'file-agenda',ftype:'PNG',kind:'guest',ctx:'vendor guest chat',ext:true,co:true,st:'success',isNew:1,det:'Edited caption on agenda.png in vendor guest chat',cap:{from:'“Draft agenda”',to:'“Final agenda — v2”'},logical:'agenda'},
+ {t:'permission',date:'10 Jul',time:'02:50 PM',who:'User S',role:'user',loc:'Boston, US',ip:'192.168.1.150',file:'Proposal.pdf',meta:'1.95 MB · PDF',fid:'file-proposal',ftype:'PDF',lbl:'Confidential',kind:'external',ctx:'#external-finance',ext:true,co:true,st:'success',isNew:1,det:'Changed Proposal.pdf permission: View only → Can download in #external-finance',perm:{from:'View only',to:'Can download'},logical:'proposal'},
+ {t:'linkcopy',date:'10 Jul',time:'03:00 PM',who:'User T',role:'user',loc:'Denver, US',ip:'192.168.1.108',file:'Proposal.pdf',meta:'1.95 MB · PDF',fid:'file-proposal',ftype:'PDF',lbl:'Confidential',kind:'external',ctx:'#external-finance',ext:true,co:true,st:'success',isNew:1,det:'Copied share link for Proposal.pdf in #external-finance',logical:'proposal'},
+ {t:'summary',date:'10 Jul',time:'03:10 PM',who:'User U',role:'user',loc:'Austin, US',ip:'192.168.1.106',file:'contract.pdf',meta:'1.1 MB · PDF',fid:'file-cpdf',ftype:'PDF',lbl:'Confidential',kind:'contact',ctx:'DM with client',ext:true,co:true,st:'success',isNew:1,det:'Viewed AI summary of contract.pdf in DM with client'},
+ {t:'media',date:'10 Jul',time:'03:15 PM',who:'Guest User V',role:'guest',loc:'London, UK',ip:'203.0.113.10',file:'demo.mp4',meta:'48 MB · MP4',fid:'file-demo',ftype:'MP4',kind:'guest',ctx:'guest chat',ext:true,co:true,st:'success',isNew:1,det:'Played demo.mp4 (92% watched) in guest chat',dur:'92% played'},
+ {t:'dlp',date:'10 Jul',time:'03:20 PM',who:'Guest User W',role:'guest',loc:'Berlin, DE',ip:'203.0.113.44',file:'contract.docx',meta:'820 KB · DOCX',fid:'file-contract',ftype:'DOCX',lbl:'Confidential',kind:'guest',ctx:'External Team Chat',ext:true,co:true,st:'blocked',planned:true,isNew:1,det:'Attempted download of contract.docx — DLP enforcement (planned) in External Team Chat',block:{attempt:'Download to device'},logical:'contract'},
+ {t:'dlp',date:'10 Jul',time:'03:30 PM',who:'User X',role:'user',loc:'Seattle, US',ip:'192.168.1.140',file:'salary.xlsx',meta:'45 KB · XLSX',fid:'file-sal',ftype:'XLSX',lbl:'Confidential',kind:'external',ctx:'#external-hr',ext:true,co:true,st:'blocked',planned:true,isNew:1,det:'Attempted external share of salary.xlsx — DLP enforcement (planned) in #external-hr',block:{attempt:'Share externally'}},
+ {t:'denied',date:'10 Jul',time:'03:40 PM',who:'Guest User Y',role:'guest',loc:'Paris, FR',ip:'203.0.113.70',file:'finance.pdf',meta:'2.1 MB · PDF',fid:'file-fin',ftype:'PDF',lbl:'Confidential',kind:'guest',ctx:'guest chat',ext:true,co:true,st:'blocked',isNew:1,det:'Attempted to open finance.pdf — access denied (no permission) in guest chat',block:{attempt:'Open file',reason:'No access granted to this guest',result:'Access denied'}},
+ {t:'dlp',date:'10 Jul',time:'03:45 PM',who:'User Z',role:'user',loc:'Miami, US',ip:'192.168.1.107',file:'contract.docx',meta:'820 KB · DOCX',fid:'file-contract',ftype:'DOCX',lbl:'Confidential',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'blocked',planned:true,isNew:1,det:'Attempted external forward of contract.docx — DLP enforcement (planned) in #client-collab',block:{attempt:'Forward externally'},logical:'contract'},
+ {t:'deleted',date:'10 Jul',time:'04:10 PM',who:'Org Admin',role:'admin',loc:'Server Admin',ip:'10.0.0.2',file:'leaked_doc.pdf',meta:'900 KB · PDF',fid:'file-leak',ftype:'PDF',lbl:'Confidential',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'success',isNew:1,det:'Deleted leaked_doc.pdf org-wide from #client-collab (admin moderation)',del:{who:'Org / super admin',reason:'Admin moderation (incident)',policy:'—'}},
+ {t:'deleted',date:'10 Jul',time:'04:20 PM',who:'System · Retention',role:'system',loc:'Automated',ip:'—',file:'budget.csv',meta:'210 KB · CSV',fid:'file-budget',ftype:'CSV',kind:'external',ctx:'#partner-review',ext:true,co:true,st:'success',isNew:1,det:'Auto-deleted budget.csv (retention policy RET-90d) from #partner-review',del:{who:'System / automated (retention)',reason:'Retention policy expiry',policy:'RET-90d',retention:true},logical:'budget'},
+ {t:'shared_wd',date:'10 Jul',time:'04:50 PM',who:'User A',role:'user',loc:'Denver, US',ip:'192.168.1.108',file:'spec (WorkDrive)',meta:'WorkDrive file',fid:'file-spec',ftype:'WORKDRIVE',kind:'external',ctx:'#client-collab',ext:true,co:true,st:'success',isNew:1,det:'Shared spec from WorkDrive in #client-collab',srcnote:'Content & version history owned by WorkDrive; Cliq logs the chat-layer share and links to WorkDrive.',stats:{v:2,d:0}},
+ {t:'shared_sheet',date:'10 Jul',time:'05:00 PM',who:'User B',role:'user',loc:'Austin, US',ip:'192.168.1.106',file:'Q4_budget (Zoho Sheet)',meta:'Zoho Sheet',fid:'file-q4',ftype:'SHEET',kind:'internal',ctx:'#finance',ext:false,co:false,st:'success',isNew:1,det:'Created & shared Q4_budget (Zoho Sheet) in #finance',srcnote:'Created & shared from Zoho Sheet; co-edits produce versions in Zoho Office.',stats:{v:5,d:1}},
+ {t:'extint',date:'10 Jul',time:'05:10 PM',who:'Guest User C',role:'guest',loc:'Dublin, IE',ip:'203.0.113.90',file:'vendor_quote.pdf',meta:'720 KB · PDF',fid:'file-vq',ftype:'PDF',kind:'mix',ctx:'guest chat → viewed by internal User D',ext:true,co:true,st:'success',isNew:1,det:'External guest uploaded vendor_quote.pdf; internal User D viewed & downloaded it',note:'Reverse direction fully tracked: an external upload consumed by an internal user.'},
+ {t:'forwarded_multi',date:'10 Jul',time:'05:20 PM',who:'Guest User G',role:'guest',loc:'London, UK',ip:'203.0.113.10',file:'Proposal.pdf',meta:'1.95 MB · PDF',fid:'file-proposal',ftype:'PDF',lbl:'Confidential',kind:'guest',ctx:'Project Team Chat',ext:true,co:true,st:'success',isNew:1,leftorg:true,det:'Forwarded Proposal.pdf: User A → User B → Guest G (left the org)',chain:[['User A',0],['User B',0],['Guest G (Current)','cur']],terminus:'⚠ Chain crossed the org boundary at hop 3 — file left the organisation.',logical:'proposal'},
+ {t:'bulk',date:'10 Jul',time:'05:30 PM',who:'1,240 users',role:'user',loc:'various',ip:'—',file:'Q2_report.pdf',meta:'3.4 MB · PDF',fid:'file-q2',ftype:'PDF',kind:'external',ctx:'#all-hands-ext',ext:true,co:true,st:'success',isNew:1,det:'Q2_report.pdf viewed by 1,240 people in #all-hands-ext',bulk:[['User A','2:31 PM'],['User B','2:34 PM'],['User C','2:36 PM'],['Guest D','2:41 PM'],['User E','2:44 PM']]},
+ {t:'anomaly',date:'10 Jul',time:'05:40 PM',who:'User E',role:'user',loc:'Seattle, US',ip:'192.168.1.140',file:'12 files',meta:'mixed types',fid:'multiple',ftype:'—',kind:'internal',ctx:'#client-project',ext:false,co:false,st:'anomaly',isNew:1,det:'Excessive downloads: 18 files in 6 min in #client-project',anom:{signal:'Excessive downloads',observed:'18 files in 6 min',baseline:'~2 / hour',risk:'High',resp:'Alert admin · require re-auth'}},
+ {t:'anomaly',date:'10 Jul',time:'05:50 PM',who:'User F',role:'user',loc:'Boston, US',ip:'192.168.1.150',file:'Proposal.pdf',meta:'1.95 MB · PDF',fid:'file-proposal',ftype:'PDF',lbl:'Confidential',kind:'external',ctx:'#external-finance',ext:true,co:true,st:'anomaly',isNew:1,leftorg:true,det:'Mass external forwarding: Proposal.pdf to 12 external recipients in #external-finance',anom:{signal:'Mass external forwarding',observed:'12 external recipients',baseline:'0 typical',risk:'High',resp:'Alert · block further external forwards'},logical:'proposal'},
+ {t:'failed',date:'10 Jul',time:'06:10 PM',who:'User I',role:'user',loc:'Austin, US',ip:'192.168.1.106',file:'large.zip',meta:'1.8 GB · ZIP',fid:'file-large',ftype:'ZIP',kind:'internal',ctx:'#eng',ext:false,co:false,st:'failed',isNew:1,det:'Upload of large.zip failed mid-transfer in #eng',note:'Logged as failed — distinct from success and from a blocked attempt.'},
+ {t:'bot',date:'10 Jul',time:'06:20 PM',who:'Bot · Zoho Flow',role:'bot',loc:'Service account',ip:'—',file:'invoice.pdf',meta:'220 KB · PDF',fid:'file-inv',ftype:'PDF',kind:'internal',ctx:'#automation',ext:false,co:false,st:'success',isNew:1,det:'invoice.pdf posted by workflow WF-204 in #automation',onbehalf:'Triggered by workflow WF-204'}
+];
+
+let statusFilter='all',crossOnly=false,leftOnly=false;
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function bcls(r){return {user:'b-user',guest:'b-guest',admin:'b-admin',system:'b-system',bot:'b-bot'}[r]||'b-user'}
+function jCount(k){return E.filter(x=>x.logical===k).length}
+function t2m(t){const m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return 0;let h=(+m[1])%12;if(/pm/i.test(m[3]))h+=12;return h*60+(+m[2]);}
+
+function render(){
+  const tb=document.getElementById('rows');tb.innerHTML='';let shown=0;
+  E.forEach((e,idx)=>{
+    e._id=idx;
+    const vis=(statusFilter==='all'||(statusFilter==='blocked'&&e.st==='blocked')||(statusFilter==='anomaly'&&e.st==='anomaly'))
+            &&(!crossOnly||e.co)&&(!leftOnly||e.leftorg);
+    if(!vis)return;shown++;
+    const m=TM[e.t];
+    const pill=e.planned?'<span class="statuspill sp-planned">Planned</span>'
+              :e.st==='blocked'?'<span class="statuspill sp-blocked">Blocked</span>'
+              :e.st==='anomaly'?'<span class="statuspill sp-anomaly">Detection</span>'
+              :e.st==='failed'?'<span class="statuspill sp-failed">Failed</span>':'';
+    const tag=e.leftorg?'<span class="rownew newtag">left org</span>':(e.co?'<span class="rownew newtag">cross-org</span>':'');
+    const slab=e.lbl?`<span class="slabel">${esc(e.lbl)}</span>`:'';
+    const tr=document.createElement('tr');tr.dataset.new=e.isNew?'1':'0';tr.onclick=()=>openDetail(e._id);
+    tr.innerHTML=`
+      <td><div class="dt"><div class="d">${e.date}</div><div class="t">${e.time}</div></div></td>
+      <td><div class="act"><div class="ic ${m[1]}">${ICON[m[0]]}</div><div class="lab">${esc(m[2])} ${pill} ${e.isNew?'<span class="rownew newtag">new</span>':''}</div></div></td>
+      <td><div class="who"><div class="nm">${esc(e.who)} <span class="badge ${bcls(e.role)}">${e.role}</span></div><div class="loc">${esc(e.loc)}</div></div></td>
+      <td><div class="kindcell">${esc(KIND[e.kind]||e.kind)} ${e.ext?ICON.ext:''}</div><div class="tags">${tag}</div></td>
+      <td><div class="details">${esc(e.det)}${slab}</div></td>`;
+    tb.appendChild(tr);
+  });
+  document.getElementById('count').textContent=E.length+' entries';
+  document.getElementById('showing').textContent=`Showing ${shown} of ${E.length} entries`;
+}
+
+function togglePreview(el){const b=el.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';el.textContent=b.style.display==='none'?'▸ Click to preview':'▾ Hide preview';}
+
+function openDetail(id){
+  const e=E[id];const m=TM[e.t];const bl=m[2];
+  const stc=e.planned?'var(--amber)':e.st==='blocked'?'var(--red)':e.st==='anomaly'?'var(--amber)':e.st==='failed'?'var(--red)':'var(--green)';
+  const stText=e.planned?'planned (DLP not yet available)':e.st;
+  const summary=`<div class="sect"><h4>Activity Summary</h4>
+    <div class="kv"><span class="k">Action</span><span class="v"><span class="abadge" style="background:var(--slate-soft);color:var(--slate)">${esc(bl)}</span></span></div>
+    <div class="kv"><span class="k">Timestamp</span><span class="v mono">${e.date} ${e.time}</span></div>
+    ${e.dur?`<div class="kv"><span class="k">${e.t==='media'?'Playback':'Duration'}</span><span class="v mono">${esc(e.dur)}</span></div>`:''}
+    <div class="kv"><span class="k">Status</span><span class="v" style="color:${stc}">${esc(stText)}</span></div></div>`;
+  const context=`<div class="sect"><h4>Context</h4>
+    <div class="kv"><span class="k">Chat Type</span><span class="v">${esc(KIND[e.kind]||e.kind)}</span></div>
+    <div class="kv"><span class="k">Location</span><span class="v">${esc(e.ctx)}</span></div>
+    <div class="kv"><span class="k">External</span><span class="v" style="color:${e.ext?'var(--red)':'var(--green)'}">${e.ext?'Yes':'No'}</span></div>
+    <div class="kv"><span class="k">Cross-org <span class="newtag">v2</span></span><span class="v">${e.co?'Yes':'No'}</span></div>
+    ${e.leftorg?`<div class="kv"><span class="k">Left the org <span class="newtag">v2</span></span><span class="v" style="color:var(--red)">Yes</span></div>`:''}</div>`;
+  const showJourney=e.logical&&jCount(e.logical)>=2;
+  const fileinfo=`<div class="sect full"><h4>File Information ${e.lbl?'<span class="newtag">labelled</span>':''}</h4>
+    <div class="card"><div class="cn">${ICON.file}<div><b>${esc(e.file)}</b> ${e.lbl?`<span class="slabel" style="display:inline-block">${esc(e.lbl)}</span>`:''}<br><span>${esc(e.meta)}</span></div></div>
+      <div style="display:flex;gap:24px;margin-top:10px;font-size:12.5px;color:var(--text2);flex-wrap:wrap"><span>File ID: <b style="color:var(--text)" class="mono">${esc(e.fid)}</b></span><span>Type: <b style="color:var(--text)">${esc(e.ftype)}</b></span><span>Device/IP: <b style="color:var(--text)" class="mono">${esc(e.ip)}</b></span>${e.logical?`<span>Logical file: <b style="color:var(--text)" class="mono">${esc(e.logical)}</b></span>`:''}</div>
+      <div style="margin-top:11px"><span class="link" onclick="togglePreview(this)">▸ Click to preview</span>
+        <div class="prevbox" style="display:none;margin-top:8px">${ICON.file}<div style="margin-top:6px">Inline preview of <b>${esc(e.file)}</b><br><span style="font-size:11px">Opening this generates a “Previewed” audit event.</span></div></div></div>
+      ${e.srcnote?`<div class="note" style="margin-top:10px;font-size:12px">${esc(e.srcnote)} <span class="newtag">v2 source</span></div>`:''}
+      ${showJourney?`<div style="margin-top:11px"><span class="link" onclick="openJourney('${e.logical}')">${ICON.hist} View full file journey <span class="newtag">v2</span></span></div>`:''}</div></div>`;
+  const userinfo=`<div class="sect full"><h4>Performed By</h4>
+    <div class="card"><div class="cn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke-width="2"/></svg>
+      <div><b>${esc(e.who)}</b> <span class="badge ${bcls(e.role)}">${e.role}</span><br><span>${esc(e.loc)}</span></div></div>
+      ${e.onbehalf?`<div class="note" style="margin-top:8px;font-size:12px">On behalf of: ${esc(e.onbehalf)} <span class="newtag">v2</span></div>`:''}</div></div>`;
+
+  let sp='';
+  if(e.stats){sp+=`<div class="sect full"><h4>Activity Stats</h4><div class="stats">
+    <div class="stat"><b>${e.stats.v}</b><span>Views</span></div><div class="stat"><b>${e.stats.d}</b><span>Downloads</span></div>
+    <div class="stat"><b style="color:var(--teal)">${e.co?'Yes':'No'}</b><span>Cross-org</span></div></div></div>`;}
+  if(e.dest){sp+=`<div class="sect full"><div class="panel teal"><h4>Download <span class="newtag">v2</span></h4><div class="kv"><span class="k">Saved to</span><span class="v">${esc(e.dest)}</span></div>${e.leftorg?'<div class="note">This download took the file off Cliq (it left the org boundary).</div>':''}</div></div>`;}
+  if(e.chain){const hops=e.chain.map(h=>{const ext=h[1]===1;const tg=h[1]==='cur'?'<span class="tg tg-cur">Current</span>':(ext?'<span class="tg tg-ext">External</span>':'');return `<div class="hop ${ext?'ext':''}"><span class="line"></span><span class="dot"></span><span class="nm">${esc(h[0])}</span>${tg}</div>`;}).join('');
+    sp+=`<div class="sect full"><h4>Forwarding Chain ${e.co?'<span class="newtag">boundary tracked</span>':''}</h4><div class="chain">${hops}</div>${e.terminus?`<div class="terminus">${esc(e.terminus)}</div>`:''}</div>`;}
+  if(e.ann){sp+=`<div class="sect full"><div class="panel purple"><h4>${e.t==='cropped'?'Crop':'Annotation'} <span class="newtag">v2</span></h4>
+    <div class="kv"><span class="k">Change</span><span class="v">${esc(e.ann.marks)}</span></div>
+    <div class="kv"><span class="k">Result version</span><span class="v mono">${esc(e.ann.toV)}</span></div>
+    <div class="note">Saved as a new version — the original image is preserved for forensics.</div></div></div>`;}
+  if(e.repl){sp+=`<div class="sect full"><div class="panel purple"><h4>Image Replaced <span class="newtag">v2</span></h4>
+    <div class="kv"><span class="k">From</span><span class="v mono">${esc(e.repl.from)}</span></div>
+    <div class="kv"><span class="k">To</span><span class="v mono">${esc(e.repl.to)}</span></div>
+    <div class="note">${esc(e.repl.note)} — both old and new files are recorded (can be innocent, or tampering).</div></div></div>`;}
+  if(e.mod){sp+=`<div class="sect full"><div class="panel teal"><h4>Version &amp; Change <span class="newtag">v2</span></h4>
+    <div class="kv"><span class="k">Change type</span><span class="v">${esc(e.mod.sub)}</span></div>
+    <div class="kv"><span class="k">Previous → Result</span><span class="v mono">${esc(e.mod.fromV)} → ${esc(e.mod.toV)}</span></div>
+    <div class="kv"><span class="k">Size delta</span><span class="v mono">${esc(e.mod.delta)}</span></div>
+    <div class="kv"><span class="k">Edited in</span><span class="v">${esc(e.mod.cls)}</span></div>
+    <div class="note">Content diff lives in the version history (WorkDrive / Zoho Office), not in the audit log.</div>
+    <div style="margin-top:9px"><span class="link">${ICON.hist} View version history →</span></div></div></div>`;}
+  if(e.cap){sp+=`<div class="sect full"><div class="panel teal"><h4>Caption Edited <span class="newtag">v2</span></h4>
+    <div class="kv"><span class="k">From</span><span class="v">${esc(e.cap.from)}</span></div><div class="kv"><span class="k">To</span><span class="v">${esc(e.cap.to)}</span></div></div></div>`;}
+  if(e.perm){sp+=`<div class="sect full"><div class="panel teal"><h4>Permission Change <span class="newtag">v2</span></h4>
+    <div class="kv"><span class="k">From</span><span class="v">${esc(e.perm.from)}</span></div><div class="kv"><span class="k">To</span><span class="v">${esc(e.perm.to)}</span></div></div></div>`;}
+  if(e.t==='linkcopy'){sp+=`<div class="sect full"><div class="panel teal"><h4>Link Copied <span class="newtag">v2</span></h4><div class="note">A share/preview link was copied — a common exfiltration path that leaves no download trace, so it is logged.</div></div></div>`;}
+  if(e.t==='summary'){sp+=`<div class="sect full"><div class="panel teal"><h4>AI Summary Viewed <span class="newtag">v2</span></h4><div class="note">Opening the AI summary of a PDF / audio / video / image is logged as access — summarising a confidential file is exactly the quiet access an investigator wants to see.</div></div></div>`;}
+  if(e.del){sp+=`<div class="sect full"><div class="panel ${e.del.retention?'amber':'teal'}"><h4>Deletion Details <span class="newtag">v2</span></h4>
+    <div class="kv"><span class="k">Who</span><span class="v">${esc(e.del.who)}</span></div>
+    <div class="kv"><span class="k">Scope</span><span class="v">Deleted for everyone</span></div>
+    <div class="kv"><span class="k">Reversibility</span><span class="v">Permanent — no soft delete/Trash in Cliq</span></div>
+    <div class="kv"><span class="k">Reason</span><span class="v">${esc(e.del.reason)}</span></div>
+    <div class="kv"><span class="k">Policy ref</span><span class="v mono">${esc(e.del.policy)}</span></div>
+    <div class="note">Deleting removes the file for everyone. Only retention runs as an automated system deletion. Either way, the full audit trail is retained.</div></div></div>`;}
+  if(e.note&&!e.del&&!e.repl){sp+=`<div class="sect full"><div class="panel teal"><h4>${esc(bl)} <span class="newtag">v2</span></h4><div class="note">${esc(e.note)}</div></div></div>`;}
+  if(e.t==='dlp'){sp+=`<div class="sect full"><div class="panel amber"><h4>DLP Enforcement — Planned <span class="newtag">not yet available</span></h4>
+    <div class="kv"><span class="k">Attempted action</span><span class="v">${esc(e.block.attempt)}</span></div>
+    <div class="kv"><span class="k">On file</span><span class="v">${esc(e.file)} ${e.lbl?'· '+esc(e.lbl):''}</span></div>
+    <div class="note">DLP for chat attachments is not available yet. When it ships, this attempt would be evaluated against a DLP policy set to one of these enforcement modes:</div>
+    <ol class="modes">${DLP_MODES.map((mo,i)=>`<li><span class="n">${i+1}</span>${esc(mo)}</li>`).join('')}</ol></div></div>`;}
+  if(e.t==='denied'){sp+=`<div class="sect full"><div class="panel red"><h4>Access Denied <span class="newtag">v2</span></h4>
+    <div class="kv"><span class="k">Attempted action</span><span class="v">${esc(e.block.attempt)}</span></div>
+    <div class="kv"><span class="k">Reason</span><span class="v">${esc(e.block.reason)}</span></div>
+    <div class="kv"><span class="k">Result</span><span class="v" style="color:var(--red)">${esc(e.block.result)}</span></div>
+    <div class="note">This is a permission denial (available today) — distinct from DLP enforcement, which is planned.</div></div></div>`;}
+  if(e.anom){sp+=`<div class="sect full"><div class="panel amber"><h4>Detection Details <span class="newtag">v2</span></h4>
+    <div class="kv"><span class="k">Signal</span><span class="v">${esc(e.anom.signal)}</span></div>
+    <div class="kv"><span class="k">Observed</span><span class="v">${esc(e.anom.observed)}</span></div>
+    <div class="kv"><span class="k">Baseline</span><span class="v mono">${esc(e.anom.baseline)}</span></div>
+    <div class="kv"><span class="k">Risk</span><span class="v" style="color:var(--red)">${esc(e.anom.risk)}</span></div>
+    <div class="kv"><span class="k">Suggested response</span><span class="v">${esc(e.anom.resp)}</span></div>
+    <div class="note">Detection is proactive; auto-response is opt-in.</div></div></div>`;}
+  if(e.bulk){const li=e.bulk.map(b=>`<div class="li"><span>${esc(b[0])}</span><span class="mono">${esc(b[1])}</span></div>`).join('');
+    sp+=`<div class="sect full"><h4>Viewers <span class="newtag">aggregated</span></h4><div class="note" style="margin:0 0 8px;font-size:12px">1,240 viewers rolled into one row — expand for the per-user, timestamped list (showing first 5).</div><div class="list">${li}</div></div>`;}
+
+  const dlg=document.getElementById('dialog');dlg.className='dialog';
+  dlg.innerHTML=`<div class="mhead"><div class="mic ${m[1]}">${ICON[m[0]]}</div><h3>${esc(bl)} — Details</h3><div class="x" onclick="closeModal()">✕</div></div>
+    <div class="mbody">${summary}${context}${sp}${fileinfo}${userinfo}</div>
+    <div class="mfoot"><span class="grow" style="font-size:12px;color:var(--text2)">Event ID <span class="mono">EVT-${String(id+1).padStart(4,'0')}</span> · append-only · read-only</span>
+      <button class="btn" onclick="closeModal()">Close</button><button class="btn primary">Export Details</button></div>`;
+  document.getElementById('overlay').classList.add('open');
+}
+
+// ---- live file journey, built from the log itself ----
+function openJourney(key){
+  const items=E.filter(x=>x.logical===key).slice().sort((a,b)=>t2m(a.time)-t2m(b.time));
+  if(!items.length)return;
+  const nameItem=items.find(x=>!/\(/.test(x.file))||items[0];
+  const label=(items.find(x=>x.lbl)||{}).lbl;
+  const steps=items.map(it=>{
+    const m=TM[it.t];const ext=!!it.leftorg||it.st==='blocked'||it.st==='anomaly';
+    let tag='';
+    if(it.leftorg)tag='⚠ left org';else if(it.st==='blocked')tag=it.planned?'DLP (planned)':'denied';else if(it.st==='anomaly')tag='⚠ anomaly';
+    return `<div class="hop ${ext?'ext':''}"><span class="line"></span><span class="dot"></span>
+      <div style="flex:1"><div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><span class="mono" style="font-size:11px;color:var(--text2)">${esc(it.time)}</span><b>${esc(m[2])}</b>${tag?`<span class="tg ${ext?'tg-ext':'tg-cur'}">${esc(tag)}</span>`:''}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(it.who)} · ${esc(it.role)} · ${esc(KIND[it.kind]||it.kind)}</div></div></div>`;
+  }).join('');
+  const hash='sha256:'+key.padEnd(4,'0').slice(0,4)+'…'+(key.length>2?key.slice(-2):'a1')+'2f';
+  const dlg=document.getElementById('dialog');dlg.className='dialog';
+  dlg.innerHTML=`<div class="mhead"><div class="mic i-forwarded">${ICON.hist}</div><h3>File Journey <span class="newtag" style="display:inline-flex">v2</span></h3><div class="x" onclick="closeModal()">✕</div></div>
+    <div style="padding:16px 22px">
+      <div class="card" style="margin-bottom:14px"><div class="cn">${ICON.file}<div><b>${esc(nameItem.file)}</b> ${label?`<span class="slabel" style="display:inline-block">${esc(label)}</span>`:''}<br><span>Tracked by content hash <span class="mono">${esc(hash)}</span> — follows the file across re-uploads &amp; renames</span></div></div></div>
+      <div class="sect"><h4>Lifecycle across all copies (${items.length} events)</h4><div class="chain">${steps}</div></div></div>
+    <div class="mfoot"><span class="grow" style="font-size:12px;color:var(--text2)">Red = boundary crossing / blocked / anomaly</span><button class="btn" onclick="closeModal()">Close</button><button class="btn primary">Export Journey</button></div>`;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function openFilter(){
+  const dlg=document.getElementById('dialog');dlg.className='dialog';
+  dlg.innerHTML=`<div class="mhead"><div class="mic i-viewed">${ICON.viewed}</div><h3>Custom Filter</h3><div class="x" onclick="closeModal()">✕</div></div>
+   <div class="mbody" style="grid-template-columns:1fr;max-height:66vh;overflow:auto">
+     <div class="fsect"><label>Select users</label><input class="fin" placeholder="Search user name"></div>
+     <div class="fsect"><label>Select channels</label><input class="fin" placeholder="Search channels"></div>
+     <div class="fsect"><label>Chat Types</label><div class="chks">${['Internal channel','External channel','DM','Contact DM','Guest chat'].map(x=>`<label class="chk"><input type="checkbox">${x}</label>`).join('')}</div></div>
+     <div class="fsect"><label>File Name</label><input class="fin" placeholder="Search by file name"></div>
+     <div class="fsect"><label>File Type</label><div class="chks">${['PDF','DOCX','XLSX','PPTX','MP4','MP3','PNG','JPG','ZIP'].map(x=>`<label class="chk"><input type="checkbox">${x}</label>`).join('')}</div></div>
+     <div class="row2"><div class="fsect"><label>User who shared</label><input class="fin" placeholder="Search"></div><div class="fsect"><label>Recipients</label><input class="fin" placeholder="Search recipients"></div></div>
+     <div class="row2"><div class="fsect"><label>Start date</label><input class="fin" type="date"></div><div class="fsect"><label>End date</label><input class="fin" type="date"></div></div>
+     <div class="fsect"><label>File Actions</label><div class="chks" style="grid-template-columns:1fr 1fr">${['Shared','Viewed','Previewed','AI summary','Downloaded','Forwarded','Annotated','Cropped','Image replaced','Content edited','Caption edited','Permission','Link copied','Deleted'].map(x=>`<label class="chk"><input type="checkbox">${x}</label>`).join('')}</div></div>
+     <div class="v2block"><div class="h">▲ Added in v2</div>
+       <div class="row2"><div class="fsect" style="margin:0"><label>Action status</label>
+         <select class="fin" id="fStatus"><option value="all">Any</option><option value="success">Success</option><option value="blocked">Blocked / Denied</option><option value="anomaly">Anomaly</option><option value="failed">Failed</option></select></div>
+         <div class="fsect" style="margin:0"><label>Actor type</label><select class="fin"><option>Any</option><option>User</option><option>Guest</option><option>External</option><option>Admin</option><option>System</option><option>Bot</option></select></div></div>
+       <div class="row2" style="margin-top:12px"><div class="fsect" style="margin:0"><label>Sensitivity label</label><select class="fin"><option>Any</option><option>Confidential</option><option>Internal</option><option>Public</option></select></div>
+         <div class="fsect" style="margin:0;display:flex;flex-direction:column;gap:9px;justify-content:flex-end">
+           <label class="chk"><input type="checkbox" id="fCross">Cross-org activity only</label>
+           <label class="chk"><input type="checkbox" id="fLeft">Files that left the organisation</label>
+           <label class="chk"><input type="checkbox">Show files not yet viewed</label></div></div>
+     </div>
+   </div>
+   <div class="mfoot"><span class="grow"></span><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="applyFilter()">Search</button></div>`;
+  document.getElementById('overlay').classList.add('open');
+}
+function applyFilter(){const st=document.getElementById('fStatus').value;statusFilter=(st==='blocked'||st==='anomaly')?st:'all';
+  crossOnly=document.getElementById('fCross').checked;leftOnly=document.getElementById('fLeft').checked;sync();render();closeModal();}
+function sync(){document.querySelectorAll('#statusSeg button').forEach(b=>b.classList.toggle('on',b.dataset.s===statusFilter));
+  document.getElementById('crossTog').classList.toggle('on',crossOnly);document.getElementById('leftTog').classList.toggle('on',leftOnly);}
+document.querySelectorAll('#statusSeg button').forEach(b=>b.onclick=()=>{statusFilter=b.dataset.s;sync();render();});
+document.getElementById('crossTog').onclick=()=>{crossOnly=!crossOnly;sync();render();};
+document.getElementById('leftTog').onclick=()=>{leftOnly=!leftOnly;sync();render();};
+document.getElementById('v2Tog').onclick=function(){this.classList.toggle('on');document.body.classList.toggle('show-new',this.classList.contains('on'));};
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+render();
+</script>
+</body>
+</html>
