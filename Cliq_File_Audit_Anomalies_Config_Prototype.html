@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cliq · Security · File Audit Anomalies</title>
+<style>
+:root{
+  --bg:#F4F6F8;--panel:#fff;--ink:#1F2733;--ink2:#6B7280;--ink3:#9AA2AD;
+  --border:#E6E9EF;--line:#EEF1F5;--hover:#F4F7FD;
+  --blue:#2D6FE0;--blue-bg:#EAF1FE;--blue-text:#2563EB;
+  --green:#12946A;--amber:#9A6A00;--amber-bg:#FBF3DE;--red:#DC2E4F;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  --shadow:0 8px 30px rgba(24,39,75,.12);
+}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+/* top bar */
+.top{height:52px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:14px}
+.logo{display:flex;align-items:center;gap:8px}
+.logo .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#2D6FE0,#1c53b8);display:grid;place-items:center}
+.logo .mark svg{width:15px;height:15px}
+.logo b{font-size:15px;letter-spacing:.2px}
+.crumb{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:13px}
+.crumb svg{width:14px;height:14px;color:var(--ink3)}
+.crumb .sep{color:var(--ink3)}
+.crumb .cur{color:var(--ink);font-weight:500}
+.top .grow{flex:1}
+.tsearch{display:flex;align-items:center;gap:8px;background:#F3F5F8;border:1px solid var(--border);border-radius:8px;padding:6px 10px;width:230px;color:var(--ink3);font-size:12.5px}
+.ticon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--ink2);border:1px solid var(--border);background:#fff}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#c7d2fe,#93a4f7)}
+/* body */
+.body{display:grid;grid-template-columns:212px 1fr;height:calc(100vh - 52px)}
+.appnav{background:#fff;border-right:1px solid var(--border);overflow-y:auto;padding:10px 0 30px}
+.grp{padding:11px 16px 4px;font-size:10.5px;letter-spacing:.06em;color:var(--ink3);font-weight:700;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;cursor:default}
+.grp .pm{color:var(--ink3);font-weight:400}
+.sub{padding:7px 16px 7px 22px;font-size:13px;color:#48505c;cursor:pointer;border-left:3px solid transparent}
+.sub:hover{background:var(--hover)}
+.sub.active{background:var(--blue-bg);color:var(--blue-text);font-weight:600;border-left-color:var(--blue)}
+.content{overflow:hidden;padding:16px}
+.board{height:100%;background:#fff;border:1px solid var(--border);border-radius:12px;display:grid;grid-template-columns:248px 1fr;overflow:hidden}
+.modules{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+.mhd{padding:16px 18px;font-weight:600;font-size:14.5px;border-bottom:1px solid var(--line)}
+.mlist{padding:10px;overflow-y:auto}
+.mitem{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;color:#48505c;font-size:13px;margin-bottom:2px;border-left:3px solid transparent}
+.mitem:hover{background:var(--hover)}
+.mitem.active{background:var(--blue-bg);color:var(--blue-text);font-weight:600}
+.mitem .mi{width:26px;height:26px;border-radius:7px;background:#F1F3F7;display:grid;place-items:center;flex:none}
+.mitem.active .mi{background:#fff}
+.mitem .mi svg{width:15px;height:15px;color:var(--ink2)}
+.mitem.active .mi svg{color:var(--blue-text)}
+.detail{display:flex;flex-direction:column;min-height:0}
+.dhd{padding:16px 22px;font-weight:600;font-size:14.5px;border-bottom:1px solid var(--line)}
+.dscroll{overflow-y:auto;padding:8px 22px 40px}
+/* cards */
+.card{padding:18px 2px 6px;border-bottom:1px solid var(--line)}
+.card:last-child{border-bottom:0}
+.chead{display:flex;gap:12px;align-items:flex-start;padding:8px 12px;border-radius:10px;position:relative}
+.chead.hero{background:linear-gradient(90deg,#F4F8FF,transparent 60%);border-left:3px solid var(--blue)}
+.chead .ci{width:34px;height:34px;border-radius:9px;background:#EEF2F8;display:grid;place-items:center;flex:none}
+.chead .ci svg{width:18px;height:18px;color:var(--blue-text)}
+.chead h3{margin:0;font-size:15px}
+.chead p{margin:3px 0 0;color:var(--ink2);font-size:12.5px;line-height:1.5;max-width:640px}
+.row{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;padding:16px 12px;border-bottom:1px dashed var(--line)}
+.row:last-child{border-bottom:0}
+.row .lab{max-width:520px}
+.row .lab h4{margin:0 0 4px;font-size:13.5px;font-weight:600}
+.row .lab p{margin:0;color:var(--ink2);font-size:12.5px;line-height:1.5}
+.row .ctrl{flex:none}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:1px 7px;border-radius:20px;vertical-align:middle;margin-left:6px}
+.tag.dlp{background:var(--amber-bg);color:var(--amber)}
+.tag.today{background:#E4F4EC;color:var(--green)}
+/* controls */
+.toggle{width:40px;height:22px;border-radius:20px;background:#cfd6e0;position:relative;cursor:pointer;transition:.15s;flex:none}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.toggle.on{background:var(--blue)}.toggle.on::after{left:20px}
+.dd{position:relative;min-width:210px}
+.dd-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--ink);cursor:pointer;font-family:inherit}
+.dd-btn:hover{border-color:#cdd4de}
+.dd-btn svg{width:14px;height:14px;color:var(--ink3);transition:.15s}
+.dd.open .dd-btn svg{transform:rotate(180deg)}
+.dd-menu{position:absolute;top:calc(100% + 6px);right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:6px;z-index:20;display:none}
+.dd.open .dd-menu{display:block}
+.dd-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:7px;font-size:13px;cursor:pointer;color:var(--ink)}
+.dd-opt:hover{background:var(--hover)}
+.dd-opt .ck{width:15px;height:15px;color:var(--blue-text);opacity:0}
+.dd-opt.sel .ck{opacity:1}
+.dd-opt.disabled{color:var(--ink3);cursor:not-allowed}
+.dd-opt.disabled:hover{background:transparent}
+.dd-opt .lock{width:13px;height:13px;color:var(--ink3)}
+.radio{display:flex;gap:22px;flex-wrap:wrap}
+.rb{display:flex;align-items:center;gap:8px;font-size:13px;color:#3a424e;cursor:pointer}
+.rb .dot{width:17px;height:17px;border-radius:50%;border:2px solid #c3cad4;display:grid;place-items:center}
+.rb.on .dot{border-color:var(--blue)}
+.rb.on .dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--blue)}
+.num{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)}
+.num input{width:58px;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit;text-align:center;color:var(--ink)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#F1F4F9;border:1px solid var(--border);border-radius:20px;padding:5px 10px;font-size:12px;color:#3a424e}
+.chip .x{color:var(--ink3);cursor:pointer}
+.chip.check{cursor:pointer}
+.chip.check .box{width:14px;height:14px;border-radius:4px;border:1.5px solid #c3cad4;display:grid;place-items:center}
+.chip.check.on{background:var(--blue-bg);border-color:#bcd2f7;color:var(--blue-text)}
+.chip.check.on .box{background:var(--blue);border-color:var(--blue)}
+.chip.check.on .box svg{width:10px;height:10px;color:#fff}
+.chip.check .box svg{opacity:0}.chip.check.on .box svg{opacity:1}
+.addchip{border:1px dashed #c3cad4;background:#fff;color:var(--ink2);cursor:pointer}
+.link{color:var(--blue-text);font-weight:600;font-size:12.5px;cursor:pointer}
+.note{background:#F5F7FA;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--ink2);line-height:1.55;margin:12px 12px 4px}
+.note b{color:#3a424e}
+.hidden{display:none}
+/* signals */
+.sighead{padding:14px 12px 6px;font-size:12.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.sig{border:1px solid var(--border);border-radius:11px;margin:8px 12px;overflow:hidden}
+.sig-top{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.sig-top .si{width:30px;height:30px;border-radius:8px;background:#F1F3F7;display:grid;place-items:center;flex:none}
+.sig-top .si svg{width:16px;height:16px;color:var(--ink2)}
+.sig-top .nm{font-weight:600;font-size:13.5px}
+.sig-top .ds{font-size:12px;color:var(--ink2);margin-top:2px;max-width:520px}
+.sig-top .grow{flex:1}
+.sig-body{padding:0 14px 14px 56px;display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.sig.off .sig-body{display:none}
+.sig.off{background:#FBFCFD}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em}
+.hint{font-size:11.5px;color:var(--ink3);margin:6px 12px 0}
+@media(max-width:960px){.body{grid-template-columns:1fr}.appnav{display:none}.board{grid-template-columns:1fr}.modules{display:none}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v10H9l-4 4V5z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></div><b>Cliq</b></div>
+  <div class="crumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke-width="2"/></svg><span class="sep">›</span><span>Admin Panel</span><span class="sep">›</span><span>Security</span><span class="sep">›</span><span class="cur">Protection Controls</span></div>
+  <span class="grow"></span>
+  <div class="tsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="M21 21l-4-4" stroke-width="2"/></svg> Search (⌘+k)</div>
+  <div class="ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 015 0c0 1.6-2.5 2-2.5 3.5M12 17h.01" stroke-width="2"/></svg></div>
+  <div class="avatar"></div>
+</div>
+<div class="body">
+  <nav class="appnav">
+    <div class="grp">Users &amp; Profiles <span class="pm">+</span></div>
+    <div class="grp">Organization <span class="pm">+</span></div>
+    <div class="grp">Permissions <span class="pm">+</span></div>
+    <div class="grp">Resource Management <span class="pm">+</span></div>
+    <div class="grp">Customisation <span class="pm">+</span></div>
+    <div class="grp">Integration <span class="pm">+</span></div>
+    <div class="grp">Data Administration <span class="pm">+</span></div>
+    <div class="grp">Security <span class="pm">–</span></div>
+    <div class="sub">Dashboard</div>
+    <div class="sub">Allowed IPs</div>
+    <div class="sub">Data Loss Prevention</div>
+    <div class="sub active">Protection Controls</div>
+    <div class="grp">Reports <span class="pm">+</span></div>
+  </nav>
+  <div class="content">
+    <div class="board">
+      <div class="modules">
+        <div class="mhd">Modules</div>
+        <div class="mlist">
+          <div class="mitem"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" stroke-width="1.6"/></svg></span>Domain Controller</div>
+          <div class="mitem"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 7h3a4 4 0 010 8h-3M10 17H7a4 4 0 010-8h3M8 12h8" stroke-width="2"/></svg></span>Safe Link Management</div>
+          <div class="mitem"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M3 12h18" stroke-width="1.6"/><path d="M12 3a15 15 0 010 18" stroke-width="1.6"/></svg></span>Domain Configuration for Ex…</div>
+          <div class="mitem active"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" stroke-width="2"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3" stroke-width="2"/></svg></span>File Upload Governance</div>
+          <div class="mitem"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" stroke-width="2"/></svg></span>Identity Protection</div>
+          <div class="mitem"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M12 7v5l3 2" stroke-width="2"/></svg></span>Session &amp; Timeout Settings</div>
+          <div class="mitem"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 16V11a6 6 0 1112 0v5l2 2H4z" stroke-width="2"/><path d="M10 20a2 2 0 004 0" stroke-width="2"/></svg></span>Security Alert Workflows</div>
+        </div>
+      </div>
+      <div class="detail">
+        <div class="dhd">Security</div>
+        <div class="dscroll">
+
+          <!-- File Upload Governance (existing, for context) -->
+          <div class="card">
+            <div class="chead hero">
+              <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" stroke-width="2"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3" stroke-width="2"/></svg></div>
+              <div><h3>File Upload Governance</h3><p>Block or allow specific file types to reduce malware risks and meet compliance requirements.</p></div>
+            </div>
+            <div class="row"><div class="lab"><h4>Configure which file types should be allowed/blocked</h4><p>Manage which file types users can upload by allowing or blocking specific file types.</p></div>
+              <div class="ctrl"><div class="dd" data-dd><button class="dd-btn"><span data-val>Allow all file types</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6" stroke-width="2"/></svg></button>
+                <div class="dd-menu">
+                  <div class="dd-opt sel">Allow all file types <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="2.5"/></svg></div>
+                  <div class="dd-opt">Allow specific file types <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="2.5"/></svg></div>
+                  <div class="dd-opt">Block specific file types <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="2.5"/></svg></div>
+                </div></div></div>
+            </div>
+            <div class="row"><div class="lab"><h4>Manage file upload limits</h4><p>File attachment maximum file size upload limit.</p></div>
+              <div class="ctrl"><span class="num"><input value="200"> MB</span></div></div>
+            <div class="row"><div class="lab"><h4>Decide what should happen with an infected file</h4></div>
+              <div class="ctrl"><div class="radio" data-radio>
+                <div class="rb on"><span class="dot"></span>Do not allow to share</div>
+                <div class="rb"><span class="dot"></span>Allow only to view</div>
+                <div class="rb"><span class="dot"></span>Allow to download after warning</div>
+              </div></div></div>
+            <div class="note"><b>Note:</b> Zoho Cliq always scans all shared files for viruses and malware before download, ensuring permanent protection.</div>
+          </div>
+
+          <!-- File Audit Anomalies (new) -->
+          <div class="card">
+            <div class="chead hero">
+              <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l9 16H3z" stroke-width="2"/><path d="M12 10v4M12 17h.01" stroke-width="2"/></svg></div>
+              <div><h3>File Audit Anomalies <span class="tag today">New</span></h3><p>Detect unusual file activity that may signal a leak, record it in Audit Logs, alert admins — and, only when enabled, respond automatically.</p></div>
+            </div>
+
+            <div class="row"><div class="lab"><h4>Enable File Audit Anomalies</h4><p>Detected anomalies also appear in Audit Logs → File Actions.</p></div>
+              <div class="ctrl"><div class="toggle on" id="master"></div></div></div>
+
+            <div id="anonBody">
+              <div class="sighead" style="padding-top:4px">Global settings</div>
+
+              <div class="row"><div class="lab"><h4>Monitoring scope</h4><p>Which conversations to watch. Cross-org is where files leave the company.</p></div>
+                <div class="ctrl"><div class="dd" data-dd><button class="dd-btn"><span data-val>Cross-org conversations only</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6" stroke-width="2"/></svg></button>
+                  <div class="dd-menu">
+                    <div class="dd-opt sel">Cross-org conversations only <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="2.5"/></svg></div>
+                    <div class="dd-opt">All conversations <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="2.5"/></svg></div>
+                    <div class="dd-opt">Custom (choose chat types) <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="2.5"/></svg></div>
+                  </div></div></div></div>
+
+              <div class="row"><div class="lab"><h4>Files to monitor</h4><p>Watch every file, or only files with a sensitivity label.</p></div>
+                <div class="ctrl"><div class="dd" data-dd><button class="dd-btn"><span data-val>All files</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6" stroke-width="2"/></svg></button>
+                  <div class="dd-menu">
+                    <div class="dd-opt sel">All files <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="2.5"/></svg></div>
+                    <div class="dd-opt disabled">Only labelled files (needs DLP) <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="11" width="14" height="9" rx="2" stroke-width="2"/><path d="M8 11V8a4 4 0 018 0v3" stroke-width="2"/></svg></div>
+                  </div></div></div></div>
+
+              <div class="row"><div class="lab"><h4>Alert recipients</h4><p>Who is notified when an anomaly is detected.</p></div>
+                <div class="ctrl"><div class="chips"><span class="chip">Security admins <span class="x">✕</span></span><span class="chip addchip">+ Add role / user</span></div></div></div>
+
+              <div class="row"><div class="lab"><h4>Alert delivery</h4><p>Where alerts are sent. Routing &amp; escalation use Security Alert Workflows.</p></div>
+                <div class="ctrl"><div class="chips" data-checks>
+                  <span class="chip check on"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="3"/></svg></span>Security Alert Workflows</span>
+                  <span class="chip check on"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="3"/></svg></span>Cliq notification</span>
+                  <span class="chip check"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="3"/></svg></span>Email</span>
+                </div></div></div>
+
+              <div class="row"><div class="lab"><h4>Enable automatic responses</h4><p>Allow anomalies to trigger an action (require re-auth, block, quarantine). While off, the strongest a signal can do is alert.</p></div>
+                <div class="ctrl"><div class="toggle" id="autoResp"></div></div></div>
+
+              <div class="row"><div class="lab"><h4>Trusted exceptions</h4><p>Skip anomaly checks for these — includes users, bots (e.g. Zoho Flow) and trusted IP ranges from Allowed IPs.</p></div>
+                <div class="ctrl"><span class="link">Manage exceptions →</span></div></div>
+
+              <div class="row"><div class="lab"><h4>Alert cooldown</h4><p>Group repeated hits from the same user + signal into one alert within this window.</p></div>
+                <div class="ctrl"><span class="num"><input value="15"> minutes</span></div></div>
+
+              <div class="sighead">Anomaly signals</div>
+              <div id="signals"></div>
+              <div class="note"><b>Note:</b> Every detected anomaly is recorded in <b>Audit Logs → File Actions</b> and routed through <b>Security Alert Workflows</b>. Behavioural signals work today; the content-aware signal activates when DLP for attachments is available.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CK='<svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12l5 5L20 7" stroke-width="2.5"/></svg>';
+const LOCK='<svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="11" width="14" height="9" rx="2" stroke-width="2"/><path d="M8 11V8a4 4 0 018 0v3" stroke-width="2"/></svg>';
+const RESP=[['audit','Audit only',false],['alert','Alert admins',false],['reauth','Alert & require re-authentication',true],['restrict','Alert & auto-restrict (block / quarantine)',true]];
+
+const SIGNALS=[
+ {id:'dl',name:'Excessive downloads',today:true,def:'alert',on:true,
+  desc:'One user downloads a lot in a short window — the classic departing-employee pattern.',
+  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12M8 11l4 4 4-4M5 19h14" stroke-width="2"/></svg>',
+  fields:[['Files','15'],['Within (min)','10']]},
+ {id:'fwd',name:'Mass external forwarding',today:true,def:'alert',on:true,
+  desc:'A file forwarded to many external recipients quickly.',
+  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 17V9a2 2 0 012-2h9M15 4l5 5-5 5" stroke-width="2"/></svg>',
+  fields:[['External recipients','5'],['Within (min)','10']]},
+ {id:'dev',name:'New location / device',today:true,def:'alert',on:true,
+  desc:'Access from an IP, location or device not seen before and outside Allowed IPs.',
+  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z" stroke-width="2"/><circle cx="12" cy="10" r="2.5" stroke-width="2"/></svg>',
+  fields:[]},
+ {id:'off',name:'Off-hours bulk access',today:true,def:'audit',on:false,
+  desc:'Large-volume access outside working hours.',
+  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 15a8 8 0 11-9-11 6 6 0 009 11z" stroke-width="2"/></svg>',
+  fields:[['Files','20'],['Outside','7am–8pm']]},
+ {id:'egr',name:'First external egress of a labelled file',today:false,def:'alert',on:true,
+  desc:'A Confidential/labelled file downloaded or forwarded by an external/guest user for the first time.',
+  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4" stroke-width="2"/></svg>',
+  fields:[]}
+];
+
+let autoOn=false;
+
+function respDD(sig){
+  const opts=RESP.map(r=>{
+    const sel=r[0]===sig.def?'sel':'';
+    const dis=(r[2]&&!autoOn)?'disabled':'';
+    const tail=(r[2]&&!autoOn)?LOCK:CK;
+    return `<div class="dd-opt ${sel} ${dis}" data-v="${r[0]}">${r[1]} ${tail}</div>`;
+  }).join('');
+  const cur=RESP.find(r=>r[0]===sig.def);
+  return `<div class="dd resp" data-dd data-sig="${sig.id}"><button class="dd-btn" style="min-width:230px"><span data-val>${cur[1]}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6" stroke-width="2"/></svg></button><div class="dd-menu">${opts}</div></div>`;
+}
+function fieldHTML(f){
+  if(f[1].includes('am')||f[1].includes('–')) return `<div class="field"><label>${f[0]}</label><span class="num"><input value="${f[1]}" style="width:96px"></span></div>`;
+  return `<div class="field"><label>${f[0]}</label><span class="num"><input value="${f[1]}"></span></div>`;
+}
+function renderSignals(){
+  document.getElementById('signals').innerHTML=SIGNALS.map(s=>{
+    const tags=(s.today?'<span class="tag today">Works today</span>':'<span class="tag dlp">Needs DLP</span>');
+    const fields=s.fields.map(fieldHTML).join('');
+    const respLabel=`<div class="field"><label>Response</label>${respDD(s)}</div>`;
+    return `<div class="sig ${s.on?'':'off'}" data-sig="${s.id}">
+      <div class="sig-top"><span class="si">${s.icon}</span>
+        <div><div class="nm">${s.name} ${tags}</div><div class="ds">${s.desc}</div></div>
+        <span class="grow"></span><div class="toggle ${s.on?'on':''}" data-sigtoggle="${s.id}"></div></div>
+      <div class="sig-body">${fields}${respLabel}</div></div>`;
+  }).join('');
+}
+renderSignals();
+
+// ---- interactions ----
+document.addEventListener('click',ev=>{
+  // custom dropdowns
+  const btn=ev.target.closest('.dd-btn');
+  const opt=ev.target.closest('.dd-opt');
+  const openDD=document.querySelector('.dd.open');
+  if(btn){const dd=btn.closest('.dd');const wasOpen=dd.classList.contains('open');document.querySelectorAll('.dd.open').forEach(d=>d.classList.remove('open'));if(!wasOpen)dd.classList.add('open');ev.stopPropagation();return;}
+  if(opt){
+    if(opt.classList.contains('disabled')){ev.stopPropagation();return;}
+    const dd=opt.closest('.dd');
+    dd.querySelectorAll('.dd-opt').forEach(o=>o.classList.remove('sel'));
+    opt.classList.add('sel');
+    dd.querySelector('[data-val]').textContent=opt.childNodes[0].textContent.trim();
+    if(dd.classList.contains('resp')){const sig=SIGNALS.find(s=>s.id===dd.dataset.sig);if(sig)sig.def=opt.dataset.v;}
+    dd.classList.remove('open');ev.stopPropagation();return;
+  }
+  if(openDD)openDD.classList.remove('open');
+
+  // radios
+  const rb=ev.target.closest('.rb');
+  if(rb){rb.parentElement.querySelectorAll('.rb').forEach(x=>x.classList.remove('on'));rb.classList.add('on');return;}
+  // delivery checks
+  const chk=ev.target.closest('.chip.check');
+  if(chk){chk.classList.toggle('on');return;}
+  // signal enable toggles
+  const stg=ev.target.closest('[data-sigtoggle]');
+  if(stg){const card=stg.closest('.sig');const on=stg.classList.toggle('on');card.classList.toggle('off',!on);const s=SIGNALS.find(x=>x.id===stg.dataset.sigtoggle);if(s)s.on=on;return;}
+  // master toggle
+  if(ev.target.id==='master'){const on=document.getElementById('master').classList.toggle('on');document.getElementById('anonBody').classList.toggle('hidden',!on);return;}
+  // auto-response toggle
+  if(ev.target.id==='autoResp'){autoOn=document.getElementById('autoResp').classList.toggle('on');
+    // if turning off, clamp any high responses down to 'alert'
+    if(!autoOn)SIGNALS.forEach(s=>{if(s.def==='reauth'||s.def==='restrict')s.def='alert';});
+    renderSignals();return;}
+});
+</script>
+</body>
+</html>
