@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cliq Migration — Prototype</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --white:#fff;
+    --sidebar-ink:#39415a; --sidebar-head:#2b3145;
+    --nav-active-bg:#e9f1fb; --nav-active-ink:#2b7fe0;
+    --teal:#1a8a9c; --teal-deep:#0d6f80;
+    --green:#5cb488; --green-deep:#4a9d74;
+    --blue:#2563eb; --blue-deep:#1d4fd0;
+    --line:#e7e9ee; --line-soft:#eef0f4;
+    --ink:#2b3145; --soft:#6b7385; --faint:#98a0b0;
+    --danger:#dc5a5a; --danger-bg:#fdeeee; --warn:#c9871f; --warn-bg:#fdf5e6;
+    --ok:#4a9d74; --ok-bg:#eaf6ef;
+    --dm-bg:#0d1b2e; --dm-panel:#132339; --dm-bubble:#16273f; --dm-ink:#c7d2e2; --dm-faint:#7f8ca3;
+    --chip:#1a8a9c;
+    --radius:10px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--font);background:#20232b;color:var(--ink);font-size:14px;line-height:1.45}
+  button{font-family:inherit;cursor:pointer}
+
+  /* ---------- prototype shell ---------- */
+  .proto-top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+    background:#12151c;color:#e8eaf0;padding:10px 18px;border-bottom:1px solid #2b2f3a}
+  .proto-top b{font-size:15px;letter-spacing:.2px}
+  .proto-top .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .proto-top .muted{color:#8b93a6;font-size:12.5px}
+  .proto-top .legend{margin-left:auto;display:flex;gap:16px;font-size:12px;color:#aab2c4;flex-wrap:wrap}
+  .proto-top .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  .layout{display:flex;min-height:calc(100vh - 43px)}
+  .map{width:270px;flex:0 0 270px;background:#171b23;color:#c3cad8;padding:14px 12px 40px;overflow:auto}
+  .map h4{margin:16px 8px 6px;font-size:11px;letter-spacing:.9px;text-transform:uppercase;color:#79839a}
+  .map h4:first-child{margin-top:2px}
+  .map a{display:block;padding:8px 10px;border-radius:8px;color:#c3cad8;text-decoration:none;font-size:13px;margin:2px 0}
+  .map a:hover{background:#212734;color:#fff}
+  .map a.active{background:#243244;color:#fff;box-shadow:inset 3px 0 0 var(--teal)}
+  .map a .tg{font-size:10px;color:#8b93a6;display:block;margin-top:1px}
+
+  .stage{flex:1;background:var(--bg);overflow:auto;position:relative}
+  .device{min-height:100%;}
+
+  /* ---------- Cliq chrome ---------- */
+  .cliq-head{display:flex;align-items:center;gap:14px;background:var(--white);border-bottom:1px solid var(--line);padding:12px 20px}
+  .cliq-logo{font-weight:700;color:#111;display:flex;align-items:center;gap:6px}
+  .cliq-logo .mk{color:var(--teal);font-size:18px}
+  .crumb{color:var(--faint);font-size:13px}
+  .crumb b{color:#333;font-weight:600}
+  .cliq-body{display:flex}
+  .cliq-nav{width:210px;flex:0 0 210px;background:var(--white);border-right:1px solid var(--line);padding:14px 0;min-height:640px}
+  .cliq-nav .grp{padding:9px 18px;font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--sidebar-head);text-transform:uppercase;display:flex;justify-content:space-between;opacity:.85}
+  .cliq-nav .it{padding:7px 18px;color:var(--sidebar-ink);font-size:13px}
+  .cliq-nav .it.sub{padding-left:34px;color:var(--soft)}
+  .cliq-nav .it.on{background:var(--nav-active-bg);color:var(--nav-active-ink);border-radius:0}
+  .cliq-main{flex:1;padding:26px 30px 60px;min-height:640px;position:relative}
+
+  /* wizard */
+  .wiz{display:grid;grid-template-columns:230px 1fr;gap:28px;max-width:1180px;margin:0 auto}
+  .steps{background:var(--white);border-radius:12px;padding:26px 20px;height:max-content;box-shadow:0 1px 0 var(--line)}
+  .step{display:flex;align-items:center;gap:12px;padding:11px 6px;color:var(--faint)}
+  .step .n{width:30px;height:30px;border-radius:50%;border:1.5px solid #cfd5e0;display:grid;place-items:center;font-weight:600;font-size:13px;color:#a7afc0;flex:0 0 30px}
+  .step.done .n,.step.cur .n{background:var(--teal);border-color:var(--teal);color:#fff}
+  .step.done,.step.cur{color:var(--teal);font-weight:600}
+  .step.cur{position:relative}
+  .step.cur:before{content:"";position:absolute;left:-20px;top:4px;bottom:4px;width:3px;background:var(--teal);border-radius:3px}
+  .prog{margin:18px 6px 4px;font-size:13px;color:var(--soft)}
+  .prog b{color:var(--teal)}
+  .bars{display:flex;gap:6px;margin:8px 6px 18px}
+  .bars i{height:6px;border-radius:4px;flex:1;background:#e3e7ee}
+  .bars i.f{background:var(--teal)}
+  .help{border-top:1px solid var(--line);padding-top:14px;margin:0 6px;text-align:center;color:var(--teal);font-size:13px}
+
+  .panel{background:var(--white);border-radius:12px;padding:0;box-shadow:0 1px 0 var(--line);min-height:520px;display:flex;flex-direction:column}
+  .panel-h{font-weight:300;font-size:26px;color:#5c6270;text-align:center;padding:26px 24px 6px}
+  .panel-b{padding:8px 30px 24px;flex:1}
+  .panel-f{padding:16px 24px;display:flex;justify-content:flex-end;gap:12px;border-top:1px solid var(--line-soft)}
+
+  /* buttons */
+  .btn{border:none;border-radius:22px;padding:12px 34px;font-size:14.5px;font-weight:600;color:#fff}
+  .btn.green{background:var(--green)} .btn.green:hover{background:var(--green-deep)}
+  .btn.blue{background:var(--blue)} .btn.blue:hover{background:var(--blue-deep)}
+  .btn.ghost{background:#fff;color:var(--soft);border:1px solid #d6dae2;border-radius:6px;padding:9px 20px}
+  .btn.blue.sq{border-radius:6px;padding:9px 22px}
+  .btn.dis{background:#c9ced8;cursor:not-allowed}
+  .btn.sm{padding:8px 18px;font-size:13px}
+  .btn.danger{background:var(--danger)} .btn.danger:hover{background:#c94b4b}
+
+  /* upload card */
+  .upcard{border:1px solid var(--line);border-radius:12px;flex:1;display:grid;place-items:center;margin:6px 0}
+  .filebox{text-align:center;color:var(--soft)}
+  .filebox .fico{width:64px;height:78px;border:2px solid #cfe8ea;border-radius:8px;display:grid;place-items:center;margin:0 auto 12px;color:var(--teal);font-size:26px}
+  .dashed{border:1.5px dashed #c7ccd6;border-radius:12px;flex:1;display:grid;place-items:center;color:var(--soft);margin:4px 0}
+
+  /* channel list */
+  .clist{max-width:760px;margin:6px auto 0}
+  .crow{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--line-soft)}
+  .crow.head{color:var(--soft);font-weight:600;border-bottom:1px solid var(--line)}
+  .crow .who{margin-left:auto;color:var(--soft);font-size:13px}
+  .grp-t{font-weight:700;color:#39415a;margin:16px 8px 2px;font-size:13px}
+  .selbar{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--line)}
+  .selbar .count{margin-left:auto;color:var(--teal);font-weight:600}
+  input[type=checkbox]{width:17px;height:17px;accent-color:var(--teal);cursor:pointer}
+  input[type=radio]{width:16px;height:16px;accent-color:var(--teal);cursor:pointer}
+
+  .radio-row{display:flex;gap:12px;align-items:flex-start;padding:12px 6px}
+  .cols{display:grid;grid-template-columns:1fr 40px 1fr;gap:0;max-width:820px;margin:10px auto}
+  .cols .or{display:grid;place-items:center;color:var(--faint)}
+  .cols h5{font-size:16px;font-weight:600;margin:0 0 6px}
+  .cols .u{height:2px;background:var(--teal);width:38px;margin-bottom:12px}
+  .opt{display:flex;gap:10px;align-items:center;padding:10px 4px}
+
+  /* generic info blocks */
+  .why{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:20px 24px;max-width:900px;margin:6px auto}
+  .why h3{margin:2px 0 6px;font-size:15px}
+  .why p,.why li{color:#4a4f5e}
+  .ss{border:1px solid var(--line);border-radius:12px;max-width:820px;margin:14px auto;overflow:hidden}
+  .ss img{width:100%;display:block}
+
+  /* processing */
+  .proc{max-width:760px;margin:0 auto;text-align:center}
+  .proc .row{display:flex;align-items:center;justify-content:center;gap:26px;margin:22px 0}
+  .proc .app{width:120px;height:120px;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);display:grid;place-items:center;background:#fff;font-size:34px}
+  .proc .dots{color:var(--teal);letter-spacing:3px}
+  .proc .stat{display:flex;gap:34px;justify-content:center;margin-top:8px;color:var(--soft)}
+  .proc .stat b{display:block;color:var(--teal);font-size:20px}
+
+  /* summary (Feature 2) */
+  .sum{max-width:960px;margin:0 auto}
+  .banner{border-radius:10px;padding:16px 18px;margin:6px 0 16px;display:flex;gap:12px;align-items:flex-start}
+  .banner.warn{background:var(--warn-bg);border:1px solid #f0dcae}
+  .banner.ok{background:var(--ok-bg);border:1px solid #cde9d8}
+  .banner.bad{background:var(--danger-bg);border:1px solid #f2c9c9}
+  .banner .bi{font-size:20px}
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+  .kc{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}
+  .kc .lab{color:var(--soft);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .kc .big{font-size:22px;font-weight:700;margin-top:4px}
+  .kc .fail{color:var(--danger);font-size:12px;margin-top:3px}
+  .kc .fail.zero{color:var(--faint)}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:2px;flex-wrap:wrap}
+  .tab{padding:10px 16px;border:none;background:none;color:var(--soft);font-weight:600;border-bottom:2px solid transparent}
+  .tab.on{color:var(--teal);border-bottom-color:var(--teal)}
+  .sec{margin:16px 0}
+  .sec .st{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:6px}
+  .sec .st .badge{font-size:11px;padding:2px 8px;border-radius:20px}
+  .badge.miss{background:var(--warn-bg);color:var(--warn)}
+  .badge.failed{background:var(--danger-bg);color:var(--danger)}
+  .sec .desc{color:var(--soft);margin:0 0 8px;font-size:13px}
+  .frow{display:grid;grid-template-columns:1.1fr 1.4fr 1.5fr;gap:12px;padding:10px 12px;border:1px solid var(--line-soft);border-radius:8px;margin-bottom:6px;align-items:center;background:#fff}
+  .frow .id b{display:block}
+  .frow .id span{color:var(--faint);font-size:12px}
+  .frow .rs{color:#7a4}
+  .rtag{font-size:11px;padding:2px 8px;border-radius:6px;background:#f0f2f6;color:var(--soft);display:inline-block}
+  .fix{color:var(--teal);font-size:13px}
+  .sumacts{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+
+  /* merge (Feature 1) */
+  .mwrap{max-width:940px;margin:0 auto}
+  .lead{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+  .lead h3{margin:0 0 4px;font-size:17px}
+  .lead p{margin:0;color:var(--soft)}
+  .bulkbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#f7f9fb;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+  .bulkbar .lab{color:var(--soft);font-size:13px}
+  .mini{border:1px solid #cdd3dd;background:#fff;border-radius:16px;padding:6px 14px;font-size:12.5px;color:var(--ink)}
+  .mini:hover{border-color:var(--teal);color:var(--teal)}
+  .tally{margin-left:auto;font-size:13px;color:var(--soft)}
+  .tally b{color:var(--ink)}
+  .mrow{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:#fff}
+  .mrow .top{display:flex;align-items:center;gap:12px}
+  .avs{display:flex}
+  .avs .av{width:30px;height:30px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;font-size:12px;margin-left:-8px;border:2px solid #fff}
+  .avs .av:first-child{margin-left:0}
+  .mrow .meta{color:var(--soft);font-size:12.5px}
+  .mopts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px}
+  .mopt{border:1.5px solid var(--line);border-radius:9px;padding:11px 12px;cursor:pointer;transition:.12s}
+  .mopt:hover{border-color:#b9d9df}
+  .mopt.sel{border-color:var(--teal);background:#f0fafb}
+  .mopt .lb{font-weight:600;display:flex;align-items:center;gap:8px}
+  .mopt .im{font-size:12px;color:var(--soft);margin-top:5px}
+  .mopt .im.warn{color:var(--danger)}
+  .rec{font-size:10px;background:var(--teal);color:#fff;padding:1px 7px;border-radius:10px}
+
+  /* re-import (case 2) */
+  .conflict{border:1px solid var(--line);border-radius:12px;background:#fff;padding:18px 20px;margin-bottom:16px}
+  .conflict h4{margin:0 0 3px;font-size:16px}
+  .conflict .sub{color:var(--soft);margin:0 0 12px;font-size:13px}
+  .note{background:#f7f9fb;border-left:3px solid var(--teal);padding:9px 12px;border-radius:0 6px 6px 0;color:#4a4f5e;font-size:13px;margin-top:10px}
+  .allist{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .alrow{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--line-soft)}
+  .alrow:last-child{border-bottom:none}
+  .alwho{font-size:13.5px}
+  .alwho .meta{color:var(--soft);font-size:12px;margin-top:1px}
+  .funnels{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:6px 0 18px}
+  .fn{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}
+  .fn .lab{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);margin-bottom:10px}
+  .fn .stage{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:3px 0}
+  .fn .stage .v{font-weight:700}
+  .fn .arrow{color:var(--faint);text-align:center;font-size:11px;line-height:1}
+  .fn .gap{display:flex;align-items:center;gap:6px;font-size:11.5px;margin-top:6px}
+  .fn .gap .pip{width:8px;height:8px;border-radius:2px;flex:0 0 8px}
+  .gap.amber .pip{background:var(--warn)} .gap.amber{color:var(--warn)}
+  .gap.red .pip{background:var(--danger)} .gap.red{color:var(--danger)}
+  .gap.none{color:var(--faint)} .gap.none .pip{background:#d7dbe2}
+  .fn .stage.src .v{color:var(--soft)} .fn .stage.zip .v{color:var(--ink)} .fn .stage.cliq .v{color:var(--ok)}
+  @media (max-width:900px){.funnels{grid-template-columns:1fr 1fr}}
+  .viewbtn{border:1px solid #cdd3dd;background:#fff;border-radius:16px;padding:7px 14px;font-size:12.5px;color:var(--ink)}
+  .viewbtn:hover{border-color:var(--teal);color:var(--teal)}
+  .countline{display:flex;gap:12px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:#fff}
+  .countline .cn{font-size:20px;font-weight:700;flex:0 0 auto}
+  .countline .cl{color:var(--soft);font-size:13.5px}
+  .countline .ca{margin-left:auto}
+  .nm-wrap{max-height:340px;overflow:auto;margin-top:4px}
+  .nm-sec{margin:10px 0}
+  .nm-h{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--soft);margin:6px 0 6px;display:flex;align-items:center;gap:8px}
+  .nm-h .pip{width:9px;height:9px;border-radius:2px}
+  .nm-row{padding:9px 11px;border:1px solid var(--line-soft);border-radius:6px;margin-bottom:5px;font-weight:600;font-size:13px}
+  .modal.wide{max-width:560px}
+
+  /* dm preview (dark) */
+  .dm{max-width:640px;margin:0 auto;background:var(--dm-bg);border-radius:12px;overflow:hidden;color:var(--dm-ink);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+  .dm-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #1e2f47;background:var(--dm-panel)}
+  .dm-head .av{width:34px;height:34px;border-radius:50%;background:#2a6df0;display:grid;place-items:center;color:#fff;font-size:13px}
+  .dm-head b{color:#7fb2ff}
+  .dm-head small{display:block;color:var(--dm-faint)}
+  .dm-body{padding:14px 16px;max-height:440px;overflow:auto}
+  .daysep{text-align:center;color:var(--dm-faint);font-size:12px;margin:6px 0 12px}
+  .msg{display:flex;gap:10px;margin-bottom:14px}
+  .msg .av{width:30px;height:30px;border-radius:50%;flex:0 0 30px;display:grid;place-items:center;font-size:12px;color:#fff}
+  .msg .nm{font-weight:600;font-size:13px;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+  .msg .tm{color:var(--dm-faint);font-size:11px;font-weight:400}
+  .msg .tx{background:transparent}
+  .chip{font-size:10px;background:rgba(26,138,156,.22);color:#5fd0e0;border:1px solid rgba(26,138,156,.5);padding:1px 8px;border-radius:10px}
+  .legend2{max-width:640px;margin:12px auto 0;color:var(--soft);font-size:12.5px;display:flex;gap:8px;align-items:center;justify-content:center}
+  .chip.demo{background:rgba(26,138,156,.12);color:var(--teal);border-color:rgba(26,138,156,.4)}
+
+  /* modal */
+  .scrim{position:fixed;inset:0;background:rgba(20,24,32,.5);display:none;place-items:center;z-index:60;padding:20px}
+  .scrim.show{display:grid}
+  .modal{background:#fff;border-radius:14px;max-width:520px;width:100%;padding:24px 24px 20px;box-shadow:0 18px 60px rgba(0,0,0,.3)}
+  .modal .mi{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:20px;margin-bottom:12px}
+  .mi.q{background:#e8f4f6;color:var(--teal)}
+  .mi.w{background:var(--warn-bg);color:var(--warn)}
+  .modal h3{margin:0 0 8px;font-size:18px}
+  .modal p{margin:0 0 6px;color:#4a4f5e}
+  .modal .impact{background:var(--warn-bg);border:1px solid #f0dcae;border-radius:8px;padding:10px 12px;color:#8a6412;font-size:13px;margin:10px 0 4px}
+  .modal .impact.safe{background:var(--ok-bg);border-color:#cde9d8;color:#2f6b48}
+  .modal .acts{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+  .kv{color:var(--soft);font-size:13px;margin-top:6px}
+
+  .tip{max-width:1180px;margin:0 auto 16px;background:#fff;border:1px dashed #cdd6df;border-left:4px solid var(--teal);border-radius:8px;padding:12px 16px;color:#4a4f5e;font-size:13px}
+  .tip b{color:var(--teal)}
+  @media (max-width:900px){.wiz{grid-template-columns:1fr}.map{display:none}.cards{grid-template-columns:repeat(2,1fr)}.mopts{grid-template-columns:1fr}.cols{grid-template-columns:1fr}.frow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="proto-top">
+  <span class="dot"></span>
+  <b>Zoho Cliq · Migration Wizard</b>
+  <span class="muted">interactive prototype — click the map on the left</span>
+  <div class="legend">
+    <span><i class="swatch" style="background:#1a8a9c"></i>step / progress</span>
+    <span><i class="swatch" style="background:#5cb488"></i>primary action</span>
+    <span><i class="swatch" style="background:#c9871f"></i>impact / caution</span>
+    <span><i class="swatch" style="background:#dc5a5a"></i>destructive</span>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="map" id="map"></nav>
+  <section class="stage"><div class="device" id="device"></div></section>
+</div>
+
+<!-- modal host -->
+<div class="scrim" id="scrim" role="dialog" aria-modal="true"><div class="modal" id="modal"></div></div>
+
+<script>
+/* ============================ helpers ============================ */
+const $ = s=>document.querySelector(s);
+const dev = ()=>document.getElementById('device');
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+
+/* Cliq chrome ---------------------------------------------------- */
+function chrome(crumb, main){
+  const nav = `
+   <div class="cliq-nav">
+     ${['USERS & PROFILES','ORGANIZATION','AUTOMATION','PERMISSIONS','RESOURCE MANAGEMENT','CUSTOMIZATION','INTEGRATION']
+        .map(g=>`<div class="grp">${g}<span>+</span></div>`).join('')}
+     <div class="grp">DATA ADMINISTRATION<span>–</span></div>
+     <div class="it">Export</div>
+     <div class="it">Audit Logs</div>
+     <div class="it on">Import External Data</div>
+     <div class="it">EDiscovery</div>
+     <div class="it sub">Retention Policy</div>
+     <div class="it sub">Investigations</div>
+     <div class="it sub">Holds</div>
+     <div class="it">Data Loss Prevention</div>
+     <div class="it sub">Policies</div>
+     <div class="it sub">Sensitive Information T…</div>
+     <div class="it sub">Alerts</div>
+     <div class="it">File Cleanup</div>
+     <div class="grp">REPORTS<span>+</span></div>
+   </div>`;
+  return `
+   <div class="cliq-head">
+     <div class="cliq-logo"><span class="mk">💬</span> Cliq</div>
+     <div class="crumb">🏠 &nbsp; Admin Panel &nbsp;›&nbsp; Data Administration · Import External Data ${crumb?`&nbsp;›&nbsp; <b>${crumb}</b>`:''}</div>
+   </div>
+   <div class="cliq-body">${nav}<div class="cliq-main">${main}</div></div>`;
+}
+
+/* Slack stepper -------------------------------------------------- */
+function steps(cur, doneCount){
+  const s=['Export from Slack','Gear up to import','Final touchdown','Ready for Cliq'];
+  const rows=s.map((t,i)=>{
+    const n=i+1; let cls = n<=doneCount?'done':(n===cur?'cur':'');
+    return `<div class="step ${cls}"><span class="n">${n}</span>${t}</div>`;
+  }).join('');
+  const bars=[0,1,2,3].map(i=>`<i class="${i<doneCount?'f':''}"></i>`).join('');
+  return `<div class="steps">${rows}
+     <div class="prog"><b>${doneCount} / 4</b> &nbsp;Completed</div>
+     <div class="bars">${bars}</div>
+     <div class="help">? Get help here</div></div>`;
+}
+
+/* modal ---------------------------------------------------------- */
+function openModal(html){ $('#modal').classList.remove('wide'); $('#modal').innerHTML=html; $('#scrim').classList.add('show'); }
+function closeModal(){ $('#scrim').classList.remove('show'); }
+$('#scrim').addEventListener('click',e=>{ if(e.target.id==='scrim') closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ============================ SCREENS ============================ */
+const S = {};
+
+/* 0 — entry source picker */
+/* which source is being migrated — drives the summary funnel shape */
+let SRC='slack';                       // 'slack' (ZIP only) | 'script' (Teams/GChat/Meta)
+function pick(src,scr){ SRC=src; show(scr); }
+
+S.entry = ()=>chrome('', `
+  <div style="max-width:1050px;margin:0 auto">
+   <h2 style="font-weight:600">Import External Data</h2>
+   <p style="text-align:center;font-weight:600;margin-top:120px">Choose an application to import from</p>
+   <div style="display:flex;gap:16px;justify-content:center;margin-top:16px">
+     ${[['Slack','💠','slack','slack-upload'],['Microsoft Teams','🟦','script','teams-instructions'],['Google Chat','💬','script','teams-instructions'],['Meta Workplace','🄦','script','teams-instructions']]
+      .map(([n,i,src,go])=>`<button onclick="pick('${src}','${go}')" style="width:150px;height:140px;background:#fff;border:1px solid var(--line);border-radius:10px;display:grid;place-items:center;gap:10px;font-weight:500">
+        <span style="font-size:34px">${i}</span>${n}</button>`).join('')}
+   </div>
+   <div class="tip" style="margin-top:40px"><b>Note:</b> Slack uploads a native ZIP (Cliq sees only the ZIP). Teams / Google Chat / Meta run a Python export script that records anything it skips — which is why the export-shortfall check applies only to those three.</div>
+  </div>`);
+
+/* 1 — Slack upload */
+S['slack-upload'] = ()=>chrome('Import from Slack', `
+  <div class="wiz">${steps(2,1)}
+    <div class="panel">
+      <div class="panel-h">Upload the exported file—time to cut some slack!</div>
+      <div class="panel-b" style="display:flex;flex-direction:column">
+        <div class="upcard"><div class="filebox">
+          <div class="fico">✓</div><div style="font-weight:600;color:var(--ink)">slk17.zip</div>
+          <div style="margin-top:4px">Your file's uploaded &nbsp;<u>Change</u></div>
+        </div></div>
+      </div>
+      <div class="panel-f"><button class="btn green" onclick="show('slack-channels')">Start Import</button></div>
+    </div>
+  </div>
+  <div class="tip">Slack has <b>no export-shortfall gate</b> — there's no script and Cliq only sees the ZIP, so there's no source total to compare against. Try also: <a href="#" onclick="show('slack-zip-error');return false">ZIP won't open</a> · <a href="#" onclick="show('f1-case2');return false">re-import detected</a></div>`);
+
+/* Export-shortfall gate — SCRIPT SOURCES ONLY (Teams / Google Chat / Meta).
+   The Python script records the chats, users and channels it skipped. */
+S['teams-shortfall']=()=>chrome('Import from Google chat', `
+  <div style="max-width:900px;margin:0 auto">
+    <div class="panel-h" style="text-align:left;font-size:20px;font-weight:600;padding-left:0">💬 Import from Google chat</div>
+    <div class="panel" style="min-height:auto">
+      <div class="panel-h">The export script skipped some items</div>
+      <div class="panel-b">
+        <div style="max-width:660px;margin:0 auto">
+          <div class="banner warn"><span class="bi">⚠</span><div><b>Your export script couldn't export everything from Google Chat.</b><br>
+            <span style="color:#7a5c15">The script logged the items it skipped while pulling data from the source. They aren't in the ZIP, so they won't be imported unless you re-run the script.</span></div></div>
+          <div class="countline"><span class="cn">2</span><span class="cl">channels skipped by the script<br><span style="font-size:11.5px">Attempted 57 · 55 exported</span></span>
+            <button class="viewbtn ca" onclick="nameModal('Channels skipped by the export script',[{head:'Skipped channels',pip:'var(--warn)',items:AFFECTED_CH.dropped}])">View skipped channels</button></div>
+          <div class="countline"><span class="cn">3</span><span class="cl">users skipped by the script<br><span style="font-size:11.5px">Access error while exporting these users</span></span>
+            <button class="viewbtn ca" onclick="nameModal('Users skipped by the export script',[{head:'Skipped users',pip:'var(--warn)',items:['grace.lee','henry.patel','irene.silva']}])">View skipped users</button></div>
+          <div class="countline"><span class="cn">4</span><span class="cl">direct messages &amp; group chats skipped<br><span style="font-size:11.5px">DM names hidden; groups viewable on demand</span></span>
+            <button class="viewbtn ca" onclick="nameModal('Group chats skipped by the export script',[{head:'Skipped group chats',pip:'var(--warn)',items:['project-atlas','ops-sync']}])">View skipped groups</button></div>
+          <p style="color:var(--soft);font-size:13px;margin-top:12px">If you proceed, the skipped items won't be in Cliq. To bring them in, fix the access/error in the source and re-run the script, then upload again.</p>
+        </div>
+      </div>
+      <div class="panel-f"><button class="btn ghost" onclick="show('teams-upload')">Re-run script</button><button class="btn blue sq" onclick="popShortfall()">Proceed anyway</button></div>
+    </div>
+  </div>
+  <div class="tip"><b>Export-shortfall gate (script sources only) —</b> driven by the script's own skip log. Slack has no equivalent because there's no script to report skips.</div>`);
+function popShortfall(){
+  openModal(`<div class="mi w">!</div>
+    <h3>Proceed without the skipped items?</h3>
+    <div class="impact">2 channels, 3 users and 4 chats were skipped by the export script and won't be imported. To bring them in, fix the source access and re-run the script.</div>
+    <div class="acts"><button class="btn ghost" onclick="closeModal()">Re-run script</button>
+      <button class="btn blue sq sm" onclick="closeModal();show('teams-overview')">Proceed anyway</button></div>`);
+}
+
+/* 1b — ZIP-level failure (Feature 2, layer A) */
+S['slack-zip-error'] = ()=>chrome('Import from Slack', `
+  <div class="wiz">${steps(1,0)}
+    <div class="panel">
+      <div class="panel-h">Upload the exported file—time to cut some slack!</div>
+      <div class="panel-b" style="display:flex;flex-direction:column">
+        <div class="upcard" style="border-color:#f2c9c9;background:#fdf6f6"><div class="filebox">
+          <div class="fico" style="border-color:#f0b4b4;color:var(--danger)">!</div>
+          <div style="font-weight:600;color:var(--danger);font-size:16px">We couldn't read this file</div>
+          <p style="max-width:420px;margin:8px auto 0">The upload isn't a valid Slack export. Re-export from Slack with <b>email-address display turned on</b>, then upload the ZIP again.</p>
+          <div style="margin-top:14px;display:flex;gap:10px;justify-content:center">
+            <button class="btn ghost sm">How to export</button>
+            <button class="btn green sm" onclick="show('slack-upload')">Upload again</button>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+  <div class="tip"><b>Rare edge — the ZIP won't open at all.</b> This is the only "hard stop". When the ZIP <i>does</i> open, the real story is the per-entity <a href="#" onclick="show('f2-summary');return false">funnel summary</a> (dropped-in-export vs failed-to-import).</div>`);
+
+/* 2 — Pick channels (Feature 3: default select all) */
+const PUBLIC=[['general','adhi two'],['design-team','bob.ross'],['engineering','frank.zhao'],['marketing','carol.white'],['random','grace.lee']];
+const PRIV=[['project-alpha','adhi two'],['leadership','frank.zhao']];
+let chSel = {};
+[...PUBLIC,...PRIV].forEach(c=>chSel[c[0]]=true); // default ALL selected
+function chCount(){return Object.values(chSel).filter(Boolean).length}
+function chTotal(){return Object.keys(chSel).length}
+function renderChannels(){
+  const row=([n,by])=>`<div class="crow"><input type="checkbox" ${chSel[n]?'checked':''} onchange="chSel['${n}']=this.checked;syncChan()"><div>${n}</div><div class="who">${by}</div></div>`;
+  return chrome('Import from Slack', `
+   <div class="wiz">${steps(3,2)}
+     <div class="panel">
+       <div class="panel-h">Pick your channels—bring them intact.</div>
+       <div class="panel-b">
+         <div class="selbar">
+           <input type="checkbox" id="selall" ${chCount()===chTotal()?'checked':''} onchange="toggleAll(this.checked)">
+           <label for="selall"><b>Select all</b> (${chTotal()})</label>
+           <span class="count" id="selcount">All ${chTotal()} channels selected</span>
+         </div>
+         <div class="clist">
+           <div class="crow head"><span style="width:17px"></span><div>Channels</div><div class="who">Created By</div></div>
+           <div class="grp-t">Public Channels</div>${PUBLIC.map(row).join('')}
+           <div class="grp-t">Private Channels</div>${PRIV.map(row).join('')}
+         </div>
+       </div>
+       <div class="panel-f"><button class="btn green" id="chnext" onclick="popChannels()">Next</button></div>
+     </div>
+   </div>
+   <div class="tip"><b>Feature 3 —</b> channels now default to <b>all selected</b>. Clicking Next raises a confirmation that states what's excluded.</div>`);
+}
+function syncChan(){
+  $('#selall').checked = chCount()===chTotal();
+  const c=chCount(),t=chTotal();
+  $('#selcount').textContent = c===t?`All ${t} channels selected`:(c===0?'No channels selected':`${c} of ${t} selected`);
+  const b=$('#chnext'); if(c===0){b.classList.add('dis');b.textContent='Select a channel'} else {b.classList.remove('dis');b.textContent='Next'}
+}
+function toggleAll(v){Object.keys(chSel).forEach(k=>chSel[k]=v);show('slack-channels')}
+S['slack-channels']=renderChannels;
+/* Pop 1 */
+function popChannels(){
+  const c=chCount(),t=chTotal(); if(c===0) return;
+  const all = c===t;
+  openModal(`
+    <div class="mi q">?</div>
+    <h3>${all?`Import all ${t} channels?`:`Import ${c} of ${t} channels?`}</h3>
+    ${all
+      ? `<p>Every channel, its messages, files and members will be brought into Cliq.</p>`
+      : `<div class="impact">The ${t-c} unselected channel${t-c>1?'s':''} and all their messages, files and members won't be brought in. You can't add them later without re-importing.</div>`}
+    <div class="acts">
+      <button class="btn ghost" onclick="closeModal()">Review selection</button>
+      <button class="btn green sm" onclick="closeModal();show('slack-team')">Yes, import</button>
+    </div>`);
+}
+
+/* 3 — associate to team (Feature 3 pop 2) */
+let assoc='org';
+S['slack-team']=()=>chrome('Import from Slack', `
+  <div class="wiz">${steps(3,2)}
+    <div class="panel">
+      <div class="panel-h">Root them in Cliq!</div>
+      <div class="panel-b">
+        <div style="max-width:520px;margin:0 auto">
+          <h5 style="font-weight:600">Import your channels as</h5><div class="cols" style="display:block"><div class="u"></div></div>
+          <label class="opt"><input type="radio" name="as" checked onclick="assoc='org'"> Organization Channels <span style="color:var(--soft)">(Public)</span></label>
+          <div style="text-align:center;color:var(--faint);margin:14px 0">— or —</div>
+          <h5 style="font-weight:600">Import them under a Team</h5><div class="cols" style="display:block"><div class="u"></div></div>
+          ${['Alanpxlr','Batch 2027','Anjana team','Team 1','Design Guild'].map(t=>`<label class="opt"><input type="radio" name="as" onclick="assoc='${t}'"> ${t}</label>`).join('')}
+        </div>
+      </div>
+      <div class="panel-f"><button class="btn ghost" onclick="show('slack-channels')">Back</button><button class="btn green" onclick="popTeam()">Start Import</button></div>
+    </div>
+  </div>
+  <div class="tip"><b>Feature 3 · Pop 2 —</b> confirms where channels land and warns it can't be changed in bulk after import.</div>`);
+function popTeam(){
+  const org=assoc==='org';
+  openModal(`
+    <div class="mi q">📍</div>
+    <h3>${org?'Create channels as Organization channels?':`Create channels under "${assoc}"?`}</h3>
+    ${org
+      ? `<p>Your selected channels will be Organization channels, visible per each channel's own type.</p>`
+      : `<div class="impact">Only members of "${assoc}" will see these channels. This can't be changed in bulk after import.</div>`}
+    <div class="acts"><button class="btn ghost" onclick="closeModal()">Back</button>
+      <button class="btn green sm" onclick="closeModal();show('slack-dm')">Start import</button></div>`);
+}
+
+/* 4 — DM Y/N (Feature 3 pop 3) */
+let dmChoice='yes';
+S['slack-dm']=()=>chrome('Import from Slack', `
+  <div class="wiz">${steps(4,3)}
+    <div class="panel">
+      <div class="panel-h">Chats—bring it all in</div>
+      <div class="panel-b">
+        <div style="max-width:640px;margin:6px auto 0">
+          <h4 style="font-weight:600">Import chats of all your colleagues?</h4><div class="u" style="height:2px;background:var(--teal);width:40px;margin:4px 0 14px"></div>
+          <p style="color:var(--soft)">Let your colleagues start conversing in Cliq right from where they left off in Slack.</p>
+          <label class="opt"><input type="radio" name="dm" checked onclick="dmChoice='yes'"> Yes, import chats</label>
+          <label class="opt"><input type="radio" name="dm" onclick="dmChoice='skip'"> Skip</label>
+        </div>
+      </div>
+      <div class="panel-f"><button class="btn green" onclick="popDM()">Start Import</button></div>
+    </div>
+  </div>
+  <div class="tip"><b>Feature 3 · Pop 3 —</b> if the admin picks <b>Skip</b>, the pop spells out the impact. If they import & overlaps exist, it opens the <a href="#" onclick="show('f1-case1');return false">merge step</a>.</div>`);
+function popDM(){
+  if(dmChoice==='skip'){
+    openModal(`
+      <div class="mi w">!</div>
+      <h3>Skip direct messages and group chats?</h3>
+      <div class="impact">DMs and group chats won't be imported. Colleagues will start with empty chats, and you'd have to re-run the whole migration to bring them in later.</div>
+      <div class="acts"><button class="btn ghost" onclick="closeModal()">Go back</button>
+        <button class="btn danger sm" onclick="closeModal();show('slack-processing')">Skip anyway</button></div>`);
+  } else {
+    openModal(`
+      <div class="mi q">💬</div>
+      <h3>Import direct messages and group chats?</h3>
+      <p>Colleagues continue their conversations in Cliq from where they left off.</p>
+      <div class="impact safe">We found some chats that already exist in Cliq. You'll choose how to handle each on the next step.</div>
+      <div class="acts"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn green sm" onclick="closeModal();show('f1-case1')">Continue</button></div>`);
+  }
+}
+
+/* ============ FEATURE 1 · CASE 1 — first-time overlap ============ */
+/* We never show DM names — only counts. Group-chat names are shown on demand. */
+/* on-demand name lists (names only, no reasons) */
+const DMS_CASE1=['Priya ↔ Riya','Adhi ↔ Karthik','Sara ↔ Meera'];
+const GROUPS_CASE1=['Design group · D, B, E'];
+const GROUPS_CASE2=['Design group · 3 people','payments','ops-sync'];
+const DMS_CASE2=['Priya ↔ Riya','Adhi ↔ Karthik','Sara ↔ Meera','+ 15 more direct messages'];
+const AFFECTED_CH={failed:['#general','#archive-old','#random'], dropped:['#q3-planning','#offsite-2025']};
+const AFFECTED_GRP={failed:['payments'], dropped:['ops-sync']};
+const AFFECTED_DM={failed:['carol.white ↔ david.kim'], dropped:['harish ↔ leela','nita ↔ omar']};
+function nameModal(title, sections){
+  const body = sections.map(s=> s.items && s.items.length
+    ? `<div class="nm-sec"><div class="nm-h">${s.pip?`<span class="pip" style="background:${s.pip}"></span>`:''}${s.head} (${s.items.length})</div>${s.items.map(n=>`<div class="nm-row">${esc(n)}</div>`).join('')}</div>`
+    : '').join('') || `<p class="kv">Nothing to show.</p>`;
+  openModal(`<div class="modal-inner"><h3>${title}</h3><div class="nm-wrap">${body}</div>
+     <div class="acts"><button class="btn green sm" onclick="closeModal()">Close</button></div></div>`);
+  $('#modal').classList.add('wide');
+}
+const OVERLAP=[
+  {people:['Priya','Riya'],cliq:2,src:2,range:'today, 10:00–10:10'},
+  {people:['Adhi','Karthik'],cliq:14,src:31,range:'5–12 Aug'},
+  {people:['Design','Bob','Emma'],group:true,cliq:40,src:120,range:'Jul–Aug'},
+  {people:['Sara','Meera'],cliq:8,src:22,range:'1–11 Aug'},
+];
+let mChoice='merge'; // single decision for the whole batch of DMs, default recommended
+function mopt(val,label,imp,warn,rec){
+  const sel=mChoice===val;
+  return `<div class="mopt ${sel?'sel':''}" onclick="mChoice='${val}';show('f1-case1')">
+     <div class="lb"><input type="radio" ${sel?'checked':''} onclick="event.stopPropagation();mChoice='${val}';show('f1-case1')"> ${label} ${rec?'<span class="rec">recommended</span>':''}</div>
+     <div class="im ${warn?'warn':''}">${imp}</div></div>`;
+}
+S['f1-case1']=()=>{
+  const dmCount=DMS_CASE1.length, grpCount=GROUPS_CASE1.length;
+  return chrome('Import from Slack', `
+   <div class="mwrap">
+     <div class="lead"><h3>We found direct messages that already exist in Cliq</h3>
+       <p>${dmCount} direct messages already exist in Cliq for people in your Slack export. Choose <b>one option</b> for how to bring in their Slack history — it applies to all of them.</p>
+       <div class="note" style="margin-top:10px"><b>Why only direct messages?</b> A DM between two people is unique, so we can match it with certainty. Group chats can\u2019t be matched safely on a first migration — several Cliq groups can have the exact same members — so every imported group is brought in as a <b>new</b> group, never merged.</div>
+     </div>
+
+     <div class="conflict">
+       <h4 style="margin:0 0 10px">Direct messages to reconcile</h4>
+       <div class="countline"><span class="cn">${dmCount}</span><span class="cl">direct messages already in Cliq</span>
+         <button class="viewbtn ca" onclick="nameModal('Direct messages to reconcile',[{head:'Direct messages',items:DMS_CASE1}])">View affected DMs</button></div>
+       <div style="text-align:right;margin-top:4px"><button class="mini" onclick="show('f1-preview')">Preview a merge ↗</button></div>
+     </div>
+
+     <div class="conflict">
+       <h4>How should we bring in their Slack history?</h4>
+       <p class="sub">This choice applies to the ${dmCount} direct messages above.</p>
+       <div class="mopts">
+         ${mopt('merge','Merge into one conversation','Keeps every message from both sides, ordered by time. Nothing is removed — imported messages are tagged.',false,true)}
+         ${mopt('imp','Use the imported conversation','Imports the Slack history and deletes the messages already in these Cliq chats. Can\'t be undone.',true,false)}
+         ${mopt('keep','Keep the Cliq conversation','Leaves these Cliq chats as they are and skips importing them from Slack.',false,false)}
+       </div>
+     </div>
+
+     <div class="conflict">
+       <h4 style="margin:0 0 6px">Group chats — imported as new</h4>
+       <p class="sub">${grpCount} group chat${grpCount!==1?'s':''} from Slack will be created as new group${grpCount!==1?'s':''} in Cliq. They are not merged into any existing Cliq group on a first migration.</p>
+       <div class="countline"><span class="cn">${grpCount}</span><span class="cl">group chat${grpCount!==1?'s':''} coming in as new</span>
+         <button class="viewbtn ca" onclick="nameModal('Group chats imported as new',[{head:'Imported as new groups',items:GROUPS_CASE1}])">View group chats</button></div>
+     </div>
+
+     <div class="panel-f" style="border:none;background:none"><button class="btn ghost" onclick="show('slack-dm')">Back</button><button class="btn green" onclick="popMerge()">Run migration</button></div>
+   </div>
+   <div class="tip"><b>Feature 1 · Case 1 (first migration) —</b> DMs merge (viewable on demand); group chats can\u2019t be matched yet, so they come in as new. Matching on <i>who is in the chat</i> is only unique for DMs. Interleave + the permanent <span class="chip demo">Imported</span> tag are in <a href="#" onclick="show('f1-preview');return false">the merge preview</a>.</div>`);
+};
+function popMerge(){
+  const destructive=mChoice==='imp';
+  const label={merge:'Merge into one conversation',imp:'Use the imported conversation',keep:'Keep the Cliq conversation'}[mChoice];
+  openModal(`<div class="mi ${destructive?'w':'q'}">${destructive?'!':'✓'}</div>
+    <h3>Run the migration?</h3>
+    <p class="kv">Chosen for all ${DMS_CASE1.length} direct messages: <b>${label}</b>. Group chats will be imported as new.</p>
+    ${destructive?`<div class="impact">"Use the imported conversation" deletes the current Cliq messages for these DMs and can't be undone.</div>`:``}
+    <div class="acts"><button class="btn ghost" onclick="closeModal()">Review</button>
+      <button class="btn green sm" onclick="closeModal();show('slack-processing')">Run migration</button></div>`);
+}
+
+/* Feature 1 merge preview — dark DM view with Imported chips */
+S['f1-preview']=()=>{
+  const M=(av,c,nm,tm,tx,imp)=>`<div class="msg"><span class="av" style="background:${c}">${av}</span>
+     <div><div class="nm">${nm} <span class="tm">${tm}</span> ${imp?'<span class="chip">Imported</span>':''}</div>
+     <div class="tx">${tx}</div></div></div>`;
+  return chrome('Import from Slack', `
+   <div style="max-width:820px;margin:0 auto">
+     <div class="lead"><h3>Preview — Priya ↔ Riya after merge</h3>
+       <p>Both timelines are woven together by send time. Messages brought in from Slack keep a permanent <span class="chip demo">Imported</span> tag so people can tell them apart.</p></div>
+     <div class="dm">
+       <div class="dm-head"><span class="av">P</span><div><b>Priya</b><small>Available for collaboration</small></div></div>
+       <div class="dm-body">
+         <div class="daysep">— Today —</div>
+         ${M('P','#e0864b','Priya','10:00 AM','Hi',false)}
+         ${M('P','#e0864b','Priya','10:02 AM','Finish this by today','imp')}
+         ${M('R','#1a8a9c','Riya','10:05 AM','Hello',false)}
+         ${M('R','#1a8a9c','Riya','10:10 AM','Okay','imp')}
+       </div>
+     </div>
+     <div class="legend2"><span class="chip demo">Imported</span> = came from Slack · no tag = already in Cliq. Same-time messages: the Cliq message shows first.</div>
+     <div style="text-align:center;margin-top:18px"><button class="btn ghost" onclick="show('f1-case1')">Back to choices</button></div>
+   </div>`);
+};
+
+/* ============ FEATURE 1 · CASE 2 — re-import ============ */
+let dmC2='merge', chC2='keep';
+function c2opt(group,val,label,imp,warn,rec,cur){
+  const sel=cur===val;const fn=group==='dm'?'dmC2':'chC2';
+  return `<div class="mopt ${sel?'sel':''}" onclick="${fn}='${val}';show('f1-case2')">
+     <div class="lb"><input type="radio" ${sel?'checked':''}> ${label} ${rec?'<span class="rec">recommended</span>':''}</div>
+     <div class="im ${warn?'warn':''}">${imp}</div></div>`;
+}
+S['f1-case2']=()=>chrome('Import from Slack', `
+  <div class="mwrap">
+    <div class="lead"><h3>This workspace was migrated before</h3>
+      <p>You last imported this Slack workspace on <b>28 Jul 2026</b>. Choose how to handle data that's already in Cliq so nothing gets duplicated.</p></div>
+
+    <div class="conflict">
+      <h4>Direct messages &amp; group chats</h4>
+      <p class="sub">18 direct messages and 3 group chats in this upload were already imported on 28 Jul 2026. This choice applies to all of them.</p>
+      <div class="note" style="margin-bottom:12px"><b>Both DMs and group chats reconcile here.</b> Because these were created by the first migration, each one carries its source ID — including group chats, which are matched by their stored <b>group ID</b> (not by members). So there\u2019s no ambiguity: we know exactly which Cliq chat each imported one maps to.</div>
+      <div class="countline"><span class="cn">18</span><span class="cl">direct messages</span>
+        <button class="viewbtn ca" onclick="nameModal('Direct messages already imported',[{head:'Direct messages',items:DMS_CASE2}])">View affected DMs</button></div>
+      <div class="countline"><span class="cn">3</span><span class="cl">group chats <span style="font-size:11.5px">· matched by group ID</span></span>
+        <button class="viewbtn ca" onclick="nameModal('Group chats already imported (matched by group ID)',[{head:'Group chats',items:GROUPS_CASE2}])">View affected group chats</button></div>
+      <div class="mopts" style="margin-top:12px">
+        ${c2opt('dm','merge','Merge','Combines both imports into one timeline. Only messages sent after 28 Jul 2026 are added, so nothing duplicates.',false,true,dmC2)}
+        ${c2opt('dm','keepold','Keep the earlier import (28 Jul 2026)','Nothing new is added for these chats.',false,false,dmC2)}
+        ${c2opt('dm','replace','Replace with this upload (12 Aug 2026)','Deletes earlier-imported messages and re-creates them. Reactions & read state are lost.',true,false,dmC2)}
+      </div>
+    </div>
+
+    <div class="conflict">
+      <h4>Channels</h4>
+      <p class="sub">6 channels in this upload were already imported on 28 Jul 2026. This choice applies to all of them.</p>
+      <div class="allist" style="margin-bottom:12px">
+        ${['#general','#engineering','#design-team','#marketing','#random','#leadership'].map(c=>`<div class="alrow"><div class="alwho"><b>${c}</b></div></div>`).join('')}
+      </div>
+      <div class="mopts" style="grid-template-columns:1fr 1fr">
+        ${c2opt('ch','keep','Keep the earlier import (28 Jul 2026)','Skips re-importing. Avoids duplicate channels and messages.',false,false,chC2)}
+        ${c2opt('ch','replace','Replace with this upload (12 Aug 2026)','Deletes the earlier channel and its messages, then re-imports. Can\'t be undone.',true,false,chC2)}
+      </div>
+      <div class="note"><b>Why no merge for channels?</b> Unlike a 1:1 chat, we can't reliably tell which channel messages are new — merging would duplicate them.</div>
+    </div>
+
+    <div class="panel-f" style="border:none;background:none"><button class="btn ghost" onclick="show('slack-upload')">Back</button><button class="btn green" onclick="popC2()">Continue</button></div>
+  </div>
+  <div class="tip"><b>Feature 1 · Case 2 —</b> dates beat "old / new". Destructive "Replace" is never the default and is flagged in red.</div>`);
+function popC2(){
+  const destructive = dmC2==='replace'||chC2==='replace';
+  openModal(`<div class="mi ${destructive?'w':'q'}">${destructive?'!':'✓'}</div>
+   <h3>Continue with these choices?</h3>
+   <p class="kv">DMs & group chats: <b>${({merge:'Merge',keepold:'Keep the earlier import',replace:'Replace with this upload'})[dmC2]}</b></p>
+   <p class="kv">Channels: <b>${({keep:'Keep earlier import',replace:'Replace with this upload'})[chC2]}</b></p>
+   ${destructive?`<div class="impact">"Replace" deletes earlier-imported data and can't be undone. Check for any legal holds first.</div>`:``}
+   <div class="acts"><button class="btn ghost" onclick="closeModal()">Review</button>
+     <button class="btn green sm" onclick="closeModal();show('slack-processing')">Continue</button></div>`);
+}
+
+/* 5 — processing */
+S['slack-processing']=()=>chrome('Import from Slack', `
+  <div class="wiz">${steps(4,4)}
+    <div class="panel">
+      <div class="panel-h">Great! The migration is under process.</div>
+      <div class="panel-b">
+        <div class="proc">
+          <div class="row"><div class="app">💠</div><div class="dots">— — — —</div><div class="app">💬</div></div>
+          <div class="stat"><div><b>842</b>User</div><div><b>13 / 15</b>Channel</div><div><b>48k</b>Message</div></div>
+          <p style="margin-top:26px;color:var(--soft);max-width:420px;margin-inline:auto">This might take a while, and we will send you an <b>Email</b> once the process is completed.</p>
+          <button class="btn ghost sm" style="margin-top:18px" onclick="show('f2-summary')">Skip to result →</button>
+        </div>
+      </div>
+    </div>
+  </div>`);
+
+/* ============ FEATURE 2 — revamped summary (3-stage funnel) ============ */
+/* Per entity: source (in Slack) -> zip (in your ZIP) -> imported (in Cliq).
+   gap 1 = source-zip  = "Dropped during export" (never in the ZIP)
+   gap 2 = zip-imported = "Failed to import"     (in the ZIP, rejected by Cliq)
+   dropped[] / failed[] list the actual items with reason + fix. */
+let sumTab='users';
+const ENT={
+ users:{label:'Users', source:846, zip:844, imported:842,
+   dropped:[
+    ['emma.jones','emma.jones2317@art.wakeupwith.in','Export skipped this user (email display off)','Re-export from Slack with email-address display on'],
+    ['irene.silva','irene.silva2317@google.in','Not written to the export file','Re-run the export; check it finished'],
+   ],
+   failed:[
+    ['adhi two','adhithyaprahladh.v+202517@zohotest.com','Belongs to a different data center','Move the user to your Cliq DC, or add manually'],
+    ['bob.ross','bob.ross2317@art.wakeupwith.in','Already a Cliq user','No action — history links to their account'],
+   ]},
+ channels:{label:'Channels', source:1000, zip:998, imported:995,
+   dropped:[
+    ['#q3-planning','—','Outside the export date range','Re-export with a wider date range'],
+    ['#offsite-2025','—','Export cut off (ran out of disk space)','Free up disk, then re-export'],
+   ],
+   failed:[
+    ['#general','—','Name conflicts with an existing Cliq channel','Rename in source, or choose Replace on re-import'],
+    ['#archive-old','—','Unsupported channel type','Recreate manually if still needed'],
+    ['#random','—','Channel was empty in the export','No action needed'],
+   ]},
+ dms:{label:'DMs & group chats', source:214, zip:210, imported:208,
+   dropped:[
+    ['harish ↔ leela','—','Private DM not included in the export','Request a corporate/compliance export from Slack'],
+    ['ops (group)','—','Export cut off','Re-run the export'],
+    ['nita ↔ omar','—','Private DM not included in the export','Request a corporate/compliance export'],
+    ['sales (group)','—','Not written to the export file','Re-run the export'],
+   ],
+   failed:[
+    ['carol.white ↔ david.kim','—','A participant failed to import','Fix the participant (Users tab), then re-run'],
+    ['payments (group)','—','Membership changed since export','Imported as a new chat — verify participants'],
+   ]},
+ atts:{label:'Attachments', source:5010, zip:5003, imported:4990,
+   dropped:[
+    ['design-review.fig','in #design-team','File not bundled into the export','Re-export; keep the network stable'],
+    ['+ 6 more files','across 4 channels','File not bundled into the export','Re-export the affected channels'],
+   ],
+   failed:[
+    ['keynote-final.mov (1.4 GB)','in #marketing','Exceeds the Cliq file-size limit','Share via WorkDrive instead'],
+    ['brand-kit.zip (820 MB)','in #design-team','Exceeds the Cliq file-size limit','Share via WorkDrive instead'],
+    ['+ 11 more files','across 6 chats','Source link expired / unsupported type','Re-export, or re-share manually'],
+   ]},
+};
+const g1=e=>e.source-e.zip;              // skipped by export script (script sources only)
+const g2=e=>e.zip-e.imported;            // failed to import (all sources)
+const nfmt=n=>n.toLocaleString();
+const isScript=()=>SRC==='script';
+const srcName=()=>isScript()?'Google Chat':'Slack';
+
+function funnel(k){
+  const e=ENT[k], drop=g1(e), fail=g2(e);
+  const gap=(n,cls,txt)=> `<div class="gap ${n>0?cls:'none'}"><span class="pip"></span>${n} ${txt}</div>`;
+  const srcStage = isScript()
+    ? `<div class="stage src"><span>In ${srcName()}</span><span class="v">${nfmt(e.source)}</span></div><div class="arrow">▼</div>`
+    : '';
+  const skipGap = isScript() ? gap(drop,'amber','skipped by script') : '';
+  const zipLabel = isScript() ? 'Exported by script' : 'In your ZIP';
+  return `<div class="fn">
+     <div class="lab">${e.label}</div>
+     ${srcStage}
+     <div class="stage zip"><span>${zipLabel}</span><span class="v">${nfmt(e.zip)}</span></div>
+     <div class="arrow">▼</div>
+     <div class="stage cliq"><span>Imported to Cliq</span><span class="v">${nfmt(e.imported)}</span></div>
+     ${skipGap}
+     ${gap(fail,'red','failed to import')}
+   </div>`;
+}
+S['f2-summary']=()=>{
+  const script=isScript(), src=srcName();
+  const banner = script
+    ? `Most of your data came through. Some items were skipped by the export script (never reached the ZIP), and some were in the ZIP but Cliq couldn't import them.`
+    : `Most of your data came through. Some items were in the ZIP but Cliq couldn't import them. (Slack has no script, so there's no export-shortfall stage — Cliq only sees the ZIP.)`;
+  const intro = script
+    ? `Each column follows one type from ${src} → exported by the script → Cliq, so you can see exactly where anything was lost.`
+    : `Each column follows one type from your uploaded ZIP → Cliq. There's no source stage for Slack — Cliq only sees the ZIP.`;
+  const chDropped = script ? [{head:'Skipped by the export script — never in the ZIP',pip:'var(--warn)',items:AFFECTED_CH.dropped}] : [];
+  const grpDropped = script ? [{head:'Skipped by the export script — never in the ZIP',pip:'var(--warn)',items:AFFECTED_GRP.dropped}] : [];
+  const chSecs = JSON.stringify([...chDropped,{head:'Failed to import — was in the ZIP',pip:'var(--danger)',items:AFFECTED_CH.failed}]);
+  const grpSecs = JSON.stringify([...grpDropped,{head:'Failed to import — was in the ZIP',pip:'var(--danger)',items:AFFECTED_GRP.failed}]);
+  const dmDropped = script ? [{head:'Skipped by the export script — never in the ZIP',pip:'var(--warn)',items:AFFECTED_DM.dropped}] : [];
+  const dmSecs = JSON.stringify([...dmDropped,{head:'Failed to import — was in the ZIP',pip:'var(--danger)',items:AFFECTED_DM.failed}]);
+  const chCount = (script?AFFECTED_CH.dropped.length:0)+AFFECTED_CH.failed.length;
+  const grpCount = (script?AFFECTED_GRP.dropped.length:0)+AFFECTED_GRP.failed.length;
+  const dmCount = (script?AFFECTED_DM.dropped.length:0)+AFFECTED_DM.failed.length;
+  const skipLegend = script
+    ? `<span><span class="pip" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--warn);margin-right:5px"></span>Skipped by the export script — re-run the script</span>`
+    : '';
+  return chrome(script?'Import from Google chat':'Import from Slack', `
+   <div class="sum">
+     <div class="banner warn"><span class="bi">⚠</span><div>
+        <b>Migration completed with issues.</b><br>
+        <span style="color:#7a5c15">${banner}</span></div></div>
+
+     <h3 style="margin:6px 0 2px;font-size:16px">How your data came through</h3>
+     <p style="color:var(--soft);margin:0 0 10px;font-size:13px">${intro}</p>
+     <div class="funnels" style="grid-template-columns:repeat(3,1fr)">
+       ${funnel('channels')}${funnel('dms')}${funnel('atts')}
+     </div>
+
+     <div style="display:flex;gap:16px;font-size:12px;color:var(--soft);margin:-6px 0 14px;flex-wrap:wrap">
+       ${skipLegend}
+       <span><span class="pip" style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--danger);margin-right:5px"></span>Failed to import</span>
+     </div>
+
+     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+       <button class="viewbtn" onclick='nameModal("Affected channels",${chSecs.replace(/'/g,"&#39;")})'>View affected channels (${chCount})</button>
+       <button class="viewbtn" onclick='nameModal("Affected group chats",${grpSecs.replace(/'/g,"&#39;")})'>View affected group chats (${grpCount})</button>
+       <button class="viewbtn" onclick='nameModal("Affected direct messages",${dmSecs.replace(/'/g,"&#39;")})'>View affected DMs (${dmCount})</button>
+     </div>
+     <p style="color:var(--faint);font-size:12px;margin:0 0 4px">Attachment names aren't shown here (there are too many) — download the full report for the complete item-by-item list.</p>
+
+     <div class="sumacts">
+       <button class="btn blue sq sm" onclick="alert('CSV report downloaded (demo)')">Download full report (CSV)</button>
+       <button class="btn green sm" onclick="show('done')">Next</button>
+     </div>
+   </div>
+   <div class="tip"><b>Source-aware summary —</b> ${script?'script sources show <b>source ▸ exported ▸ Cliq</b> with a skipped-by-script gap (the script logs what it skipped).':'Slack shows <b>ZIP ▸ Cliq</b> only — no source stage and no export-shortfall, because there is no script to report skips.'}</div>`);
+};
+
+/* final "next page" after the summary */
+S['done']=()=>chrome('Import from Slack', `
+  <div class="sum" style="max-width:640px;text-align:center;margin:40px auto 0">
+    <div style="font-size:44px">🎉</div>
+    <h2 style="font-weight:600;margin:6px 0">You're all set on Cliq</h2>
+    <p style="color:var(--soft);max-width:460px;margin:0 auto 22px">Your migration is done. We've emailed a copy of the full report. Here's what to do next.</p>
+    <div style="text-align:left;max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:10px">
+      ${[['Invite imported users','They get an email to join — resend from Users & Profiles.'],
+         ['Verify your top channels','Open a few channels and check messages landed as expected.'],
+         ['Re-export anything that was dropped','Fix the Slack export, then re-import — Cliq only adds what is new.']]
+        .map(([t,d])=>`<div class="countline" style="align-items:flex-start"><span class="cn" style="color:var(--teal)">›</span><span class="cl"><b style="color:var(--ink)">${t}</b><br>${d}</span></div>`).join('')}
+    </div>
+    <div style="margin-top:24px"><button class="btn green" onclick="show('entry')">Go to Cliq</button></div>
+  </div>`);
+
+/* ============ TEAMS / GCHAT / META ============ */
+S['teams-instructions']=()=>chrome('Import from Google chat', `
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="panel-h" style="text-align:left;font-size:20px;font-weight:600;padding-left:0">💬 Import from Google chat</div>
+    <div class="why">
+      <h3>Why should you do this?</h3>
+      <p>Import your data and take a step closer to seamless collaboration in Zoho Cliq.</p>
+      <h3 style="margin-top:14px">System Requirements</h3>
+      <p>Install Python 3 or later — our script is compatible with Windows, macOS and Linux.</p>
+      <h3 style="margin-top:14px">Steps</h3>
+      <ol style="margin:6px 0 0 18px;line-height:1.9">
+        <li>Sign in to your Google Workspace admin account and start the export.</li>
+        <li>Download the exported file from Google Cloud.</li>
+        <li>Run the script with the necessary details on your system.</li>
+        <li>Upload the exported file here and finalize the import.</li>
+      </ol>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;max-width:900px;margin:16px auto 0">
+      <button class="btn ghost" onclick="show('entry')">Back</button>
+      <button class="btn blue sq" onclick="show('teams-upload')">Next</button>
+    </div>
+  </div>
+  <div class="tip"><b>Note:</b> Teams / Google Chat / Meta have <b>no channel-pick or team-association</b> steps. After upload they go straight to the overview, then the DM decision, then the same summary.</div>`);
+
+S['teams-upload']=()=>chrome('Import from Google chat', `
+  <div style="max-width:1000px;margin:0 auto">
+    <div class="panel-h" style="text-align:left;font-size:20px;font-weight:600;padding-left:0">💬 Import from Google chat</div>
+    <p style="max-width:900px;margin:0 auto 8px">Upload the zip file you exported into this Cliq organization.</p>
+    <div style="max-width:900px;margin:0 auto"><div class="dashed" style="min-height:360px">
+      <div class="filebox"><div class="fico">🗂</div>Drag and drop the file here<br>or <u style="color:var(--blue)">browse</u></div>
+    </div></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;max-width:900px;margin:16px auto 0">
+      <button class="btn ghost" onclick="show('teams-instructions')">Back</button>
+      <button class="btn blue sq" onclick="show('teams-shortfall')">Upload</button>
+    </div>
+  </div>
+  <div class="tip">A ZIP that won't open raises the <a href="#" onclick="show('slack-zip-error');return false">hard-stop screen</a>. A ZIP that opens but is incomplete flows to the <a href="#" onclick="show('f2-summary');return false">funnel summary</a>.</div>`);
+
+let tdm='yes';
+S['teams-overview']=()=>chrome('Import from Google chat', `
+  <div style="max-width:900px;margin:0 auto">
+    <div class="panel" style="min-height:auto">
+      <div class="panel-h">Here's what we found</div>
+      <div class="panel-b">
+        <div class="cards" style="grid-template-columns:repeat(3,1fr);max-width:560px;margin:0 auto 20px">
+          <div class="kc"><div class="lab">Users</div><div class="big">312</div></div>
+          <div class="kc"><div class="lab">Teams / Spaces</div><div class="big">24</div></div>
+          <div class="kc"><div class="lab">Channels</div><div class="big">57</div></div>
+        </div>
+        <div style="max-width:560px;margin:0 auto">
+          <h4 style="font-weight:600">Import direct messages and group chats?</h4>
+          <p style="color:var(--soft)">Colleagues continue from where they left off in Google Chat.</p>
+          <label class="opt"><input type="radio" name="tdm" checked onclick="tdm='yes'"> Yes, import chats</label>
+          <label class="opt"><input type="radio" name="tdm" onclick="tdm='skip'"> Skip</label>
+        </div>
+      </div>
+      <div class="panel-f"><button class="btn blue sq" onclick="popTDM()">Start Import</button></div>
+    </div>
+  </div>
+  <div class="tip">Feature 3 Pop 3 and Feature 1 merge apply here too (no channel-pick / team pops). Re-import? → <a href="#" onclick="show('f1-case2');return false">Case 2</a>.</div>`);
+function popTDM(){
+  if(tdm==='skip'){
+    openModal(`<div class="mi w">!</div><h3>Skip direct messages and group chats?</h3>
+     <div class="impact">DMs and group chats won't be imported. Colleagues start with empty chats and you'd need to re-run the migration to bring them in later.</div>
+     <div class="acts"><button class="btn ghost" onclick="closeModal()">Go back</button>
+       <button class="btn danger sm" onclick="closeModal();show('f2-summary')">Skip anyway</button></div>`);
+  } else {
+    openModal(`<div class="mi q">💬</div><h3>Import direct messages and group chats?</h3>
+     <div class="impact safe">Some chats already exist in Cliq — you'll choose how to handle each next.</div>
+     <div class="acts"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+       <button class="btn blue sq sm" onclick="closeModal();show('f1-case1')">Continue</button></div>`);
+  }
+}
+
+/* ============================ NAV MAP ============================ */
+const MAP=[
+ ['Start',[['entry','Source picker','Admin › Import External Data']]],
+ ['Slack flow',[
+   ['slack-upload','1 · Upload ZIP',''],
+   ['slack-zip-error','ZIP won\'t open (rare)','hard stop only'],
+   ['slack-channels','2 · Pick channels (F3)','default = select all'],
+   ['slack-team','3 · Associate to team (F3)','confirm pop'],
+   ['slack-dm','4 · Import DMs? (F3)','skip = impact pop'],
+   ['slack-processing','Migration in process',''],
+ ]],
+ ['Feature 1 · Merge',[
+   ['f1-case1','Case 1 · First-time overlap','count + groups on demand'],
+   ['f1-preview','Case 1 · Merged preview','interleave + Imported tag'],
+   ['f1-case2','Case 2 · Re-import conflict','merge / keep / replace'],
+ ]],
+ ['Feature 2 · Result',[
+   ['f2-summary','Result summary (F2)','source-aware funnel'],
+   ['done','All set (next page)','post-migration steps'],
+ ]],
+ ['Teams / GChat / Meta',[
+   ['teams-instructions','1 · Instructions + script',''],
+   ['teams-upload','2 · Upload ZIP',''],
+   ['teams-shortfall','Export shortfall gate','script skips — this flow only'],
+   ['teams-overview','3 · Overview + DMs (F3/F1)',''],
+ ]],
+];
+function buildMap(){
+  $('#map').innerHTML = MAP.map(([h,items])=>`<h4>${h}</h4>`+items.map(([id,t,tg])=>
+    `<a href="#" data-id="${id}" onclick="show('${id}');return false">${t}${tg?`<span class="tg">${tg}</span>`:''}</a>`).join('')).join('');
+}
+function show(id){
+  if(!S[id]) return;
+  dev().innerHTML = S[id]();
+  document.querySelectorAll('#map a').forEach(a=>a.classList.toggle('active',a.dataset.id===id));
+  if(id==='slack-channels') syncChan();
+  dev().parentElement.scrollTop=0;
+  window.scrollTo(0,0);
+}
+buildMap();
+show('entry');
+</script>
+</body>
+</html>
