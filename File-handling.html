@@ -1,0 +1,829 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cliq — File Handling prototype v7</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#2b7de9;--blue-dk:#1a6fdc;--blue-bg:#eaf2fe;--blue-ln:#c7ddfb;
+  --ink:#22272f;--mute:#7c8698;--line:#e4e6eb;--line2:#eef0f3;--bg:#f4f6f8;
+  --red:#e8443a;--red-bg:#fdecea;--red-ln:#f6cfcb;
+  --amber:#b7791f;--amber-bg:#fef6e7;--amber-ln:#f0dcae;
+  --green:#1a9c5b;--green-bg:#e9f7ef;--green-ln:#c3e8d3;
+  --purple:#5b3fc4;--purple-bg:#f0ecfd;--purple-ln:#dcd2fa;
+  --dark:#1b1e25;--dark2:#22262e;--dark3:#16181d;--dark-line:#2f343e;--dark-txt:#d7dbe2;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+select,input{font:inherit;color:inherit}
+.wrap{max-width:1440px;margin:0 auto;padding:18px}
+.topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800}
+.tabs{display:flex;gap:4px;background:#e7eaee;padding:4px;border-radius:10px;flex-wrap:wrap}
+.tabs button{padding:7px 13px;border-radius:7px;font-size:13px;font-weight:600;color:#5b6472}
+.tabs button.on{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.hint{font-size:12.5px;color:var(--mute);margin-left:auto}
+.view{display:none}.view.on{display:block}
+.admin{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+.admin-head{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line)}
+.crumb{font-size:14px;color:var(--mute)}.crumb b{color:var(--ink);font-weight:600}
+.admin-body{display:grid;grid-template-columns:196px 220px 1fr}
+@media(max-width:1120px){.admin-body{grid-template-columns:1fr}}
+.sidenav,.modules{border-right:1px solid var(--line);padding:14px 10px;background:#fff}
+.sidenav h4{font-size:10.5px;letter-spacing:.06em;color:#98a1b0;font-weight:700;padding:9px 10px 5px}
+.sidenav a{display:block;padding:6px 10px;border-radius:6px;color:#5b6472;font-size:13px;text-decoration:none}
+.sidenav a.on{background:var(--blue-bg);color:var(--blue);font-weight:600}
+.modules .mt{font-size:13px;font-weight:700;padding:4px 10px 10px}
+.modules a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;color:#4a5361;font-size:13px;text-decoration:none;margin-bottom:2px}
+.modules a.on{background:var(--blue-bg);color:var(--blue);font-weight:600}
+.modules .ic{width:17px;text-align:center;opacity:.85}
+.cfg-title{font-size:15px;font-weight:700;padding:14px 20px;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:12px;align-items:flex-start;padding:14px 20px;background:#f7f9fb;border-bottom:1px solid var(--line);border-left:3px solid var(--blue)}
+.sec-head .si{width:32px;height:32px;border-radius:8px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:15px;flex:none}
+.sec-head h3{font-size:13px;font-weight:700;letter-spacing:.04em}
+.sec-head p{font-size:12.5px;color:var(--mute);margin-top:2px}
+.grow{flex:1;min-width:0}
+.block{padding:16px 20px;border-bottom:1px solid var(--line2)}
+.row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.lbl{font-size:13.5px;font-weight:600}
+.sub{font-size:12.5px;color:var(--mute);margin-top:2px}
+.bul{font-size:13px;min-width:230px}
+.tgrow{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line2)}
+/* no overflow:hidden here — it was clipping the dropdown */
+.fh{margin:14px 0 0;border:1px solid var(--line);border-radius:10px;background:#fff;position:relative}
+.fh-head{display:flex;align-items:center;gap:11px;padding:12px 15px;background:#f7f9fb;border-bottom:1px solid var(--line);border-radius:10px 10px 0 0}
+.fh-head .si{width:29px;height:29px;border-radius:8px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:14px;flex:none}
+.fh-head h4{font-size:13.5px;font-weight:700}
+.fh-head p{font-size:12px;color:var(--mute);margin-top:1px}
+.ptabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 15px;background:#fff;flex-wrap:wrap;align-items:center}
+.ptabs button{padding:10px 13px;font-size:13px;font-weight:600;color:var(--mute);border-bottom:2px solid transparent;margin-bottom:-1px}
+.ptabs button.on{color:var(--blue);border-bottom-color:var(--blue)}
+.fh-body{padding:14px 15px}
+.scope{font-size:12.5px;color:#4a5361;background:#f5f7fa;border:1px solid var(--line);border-radius:8px;padding:9px 12px;display:flex;gap:9px;align-items:flex-start}
+.rules{width:100%;border-collapse:collapse;margin-top:4px}
+.rules th{font-size:10.5px;letter-spacing:.03em;color:#8a94a3;font-weight:700;text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+.rules th.c,.rules td.c{text-align:center}
+.rules td{padding:11px 8px;border-bottom:1px solid var(--line2);vertical-align:middle}
+.rules tr.dis td{background:#fafbfc;opacity:.78}
+.rules tr.fb td{background:#f7f9fb}
+.ftype{display:flex;align-items:center;gap:9px}
+.fchip{font-size:10.5px;font-weight:700;color:#fff;padding:3px 6px;border-radius:5px;flex:none}
+.fname{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fmeta{font-size:11.5px;color:var(--mute);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.fmeta.plain{font-family:inherit}
+.mini{font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:20px;border:1px solid;white-space:nowrap}
+.mini.blk{background:var(--red-bg);border-color:var(--red-ln);color:#9c332b}
+.mini.cus{background:var(--purple-bg);border-color:var(--purple-ln);color:var(--purple)}
+.mini.var{background:var(--blue-bg);border-color:var(--blue-ln);color:var(--blue-dk)}
+.tg{position:relative;width:36px;height:20px;border-radius:20px;background:#cfd5de;transition:background .15s;flex:none;display:inline-block;vertical-align:middle;cursor:pointer}
+.tg::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.tg.on{background:var(--blue)}.tg.on::after{transform:translateX(16px)}
+.tg.dis{opacity:.3;cursor:not-allowed}
+.tg:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.na{font-size:11px;color:#a8b0bc;font-style:italic}
+.sel{padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:12.5px;min-width:118px}
+.sel:disabled{background:#f2f4f7;color:#a8b0bc}
+.inp{padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;width:100%}
+.inp.bad{border-color:var(--red);background:#fffafa}
+.inp:focus,.sel:focus{outline:2px solid var(--blue-bg);border-color:var(--blue)}
+.btn{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600}
+.btn.pri{background:var(--blue);color:#fff}.btn.pri:hover{background:var(--blue-dk)}
+.btn.pri:disabled{opacity:.45;cursor:not-allowed}
+.btn.gho{border:1px solid var(--line);background:#fff;color:#4a5361}.btn.gho:hover{background:#f7f9fb}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.tiny{padding:3px 9px;font-size:11px;font-weight:700}
+.icb{color:#b0b8c4;font-size:14px;padding:3px 6px;border-radius:5px}
+.icb:hover{color:var(--blue);background:var(--blue-bg)}
+.icb.del:hover{color:var(--red);background:var(--red-bg)}
+.chk{width:15px;height:15px;accent-color:var(--blue);vertical-align:-2px;margin-right:6px}
+.radio{accent-color:var(--blue);margin-right:5px;vertical-align:-2px}
+label.opt{font-size:13px;margin-right:16px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center}
+.note{display:flex;gap:9px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;margin-top:10px;border:1px solid}
+.note .ni{flex:none;font-size:13px;line-height:1.35}
+.note.info{background:#f5f7fa;border-color:var(--line);color:#4a5361}
+.note.warn{background:var(--amber-bg);border-color:var(--amber-ln);color:#7a5a12}
+.note.err{background:var(--red-bg);border-color:var(--red-ln);color:#9c332b}
+.note.pol{background:var(--blue-bg);border-color:var(--blue-ln);color:#1c5aa8}
+.note b{font-weight:700}
+.pill{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid;white-space:nowrap}
+.pill.view{background:var(--blue-bg);border-color:var(--blue-ln);color:var(--blue-dk)}
+.pill.open{background:var(--purple-bg);border-color:var(--purple-ln);color:var(--purple)}
+.pill.dl{background:var(--green-bg);border-color:var(--green-ln);color:#146c40}
+.pill.block{background:var(--red-bg);border-color:var(--red-ln);color:#9c332b}
+.pill.star{background:#fff5d6;border-color:var(--amber-ln);color:#7a5a12}
+.empty{border:1px dashed var(--line);border-radius:10px;padding:26px 20px;text-align:center;background:#fbfcfd}
+.empty .ei{font-size:26px;margin-bottom:8px;opacity:.7}
+.empty h5{font-size:14px;font-weight:700;margin-bottom:5px}
+.empty p{font-size:12.8px;color:var(--mute);max-width:460px;margin:0 auto 14px}
+.defcard{border:1px solid var(--blue-ln);background:var(--blue-bg);border-radius:10px;padding:14px 16px;margin-top:14px}
+.defcard h5{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.defcard p{font-size:12.5px;color:#1c5aa8;margin-bottom:12px}
+.defrow{background:#fff;border:1px solid var(--blue-ln);border-radius:9px;padding:12px 14px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.defitem{display:flex;align-items:center;gap:9px;font-size:12.8px}
+/* extension chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 5px 3px 10px}
+.chip b{font-weight:600}
+.chip button{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#a8b0bc;line-height:1}
+.chip button:hover{background:var(--red-bg);color:var(--red)}
+.chip.cat{background:var(--blue-bg);border-color:var(--blue-ln);color:var(--blue-dk);font-family:inherit;font-weight:600}
+.extbox{border:1px solid var(--line);border-radius:9px;padding:11px;background:#fafbfc}
+/* picker */
+.picker{position:relative;display:inline-block}
+.pmenu{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(16,24,40,.16);width:352px;z-index:60;display:none;overflow:hidden}
+.pmenu.on{display:block}
+.pmenu .plist{max-height:250px;overflow:auto;padding:6px}
+.pmenu .psearch{padding:9px 10px;border-bottom:1px solid var(--line2)}
+.pmenu .ph{font-size:10.5px;letter-spacing:.04em;color:#98a1b0;font-weight:700;padding:7px 10px 5px}
+.pmenu button.pi{display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px}
+.pmenu button.pi:hover{background:var(--blue-bg)}
+.pmenu .pl{font-weight:600;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pmenu .px{font-size:11.5px;color:var(--mute);margin-top:2px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.pmenu .pt{margin-left:auto;font-size:10px;font-weight:800;color:#98a1b0;white-space:nowrap;padding-top:2px}
+.pmenu .pfoot{border-top:1px solid var(--line);padding:6px;background:#fafbfc}
+.pmenu .pempty{padding:16px 12px;text-align:center;font-size:12.5px;color:var(--mute)}
+.ovl{position:fixed;inset:0;background:rgba(10,12,16,.55);display:none;place-items:center;z-index:80;padding:20px}
+.ovl.on{display:grid}
+.modal{background:#fff;border-radius:13px;max-width:490px;width:100%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.3);max-height:90vh;overflow:auto}
+.modal.wide{max-width:620px}
+.modal.center{text-align:center}
+.modal .mi{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font-size:23px;margin:0 auto 13px}
+.modal h4{font-size:16px;font-weight:700;margin-bottom:5px}
+.modal .msub{font-size:12.8px;color:#5b6472;margin-bottom:16px}
+.modal p{font-size:13px;color:#5b6472;margin-bottom:14px}
+.mnote{background:#f5f7fa;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:12.5px;color:#4a5361;margin-bottom:15px;text-align:left}
+.mbtns{display:flex;gap:9px;justify-content:flex-end;margin-top:4px;align-items:center}
+.fld{margin-bottom:15px}.fld>label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.fld .h{font-size:11.5px;color:var(--mute);margin-top:5px}
+.fld .h.bad{color:var(--red)}
+.actbox{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.actbox label{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line2)}
+.actbox label:last-child{border-bottom:none}
+.actbox label:hover{background:#fafbfc}
+.actbox label.off{opacity:.45;cursor:not-allowed;background:#fafbfc}
+.actbox .d{font-size:11.5px;color:var(--mute);display:block;margin-top:2px}
+.headchip{display:flex;align-items:center;gap:8px;background:#f5f7fa;border:1px solid var(--line);border-radius:8px;padding:8px 11px;margin-bottom:16px;font-size:12.8px;flex-wrap:wrap}
+/* extension chooser */
+.chooser{border:1px solid var(--line);border-radius:9px;max-height:330px;overflow:auto}
+.cat{border-bottom:1px solid var(--line2)}
+.cat:last-child{border-bottom:none}
+.cathead{display:flex;align-items:center;gap:9px;padding:10px 12px;background:#fafbfc;cursor:pointer}
+.cathead:hover{background:#f4f6f8}
+.cathead .cn{font-weight:600;font-size:13px;display:flex;align-items:center;gap:7px}
+.cathead .cc{margin-left:auto;font-size:11px;color:var(--mute)}
+.cathead .arw{font-size:10px;color:#a8b0bc;transition:transform .15s}
+.cat.open .arw{transform:rotate(90deg)}
+.catbody{display:none;padding:6px 12px 11px 38px;flex-wrap:wrap;gap:5px}
+.cat.open .catbody{display:flex}
+.extopt{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 10px;cursor:pointer}
+.extopt.on{background:var(--blue-bg);border-color:var(--blue-ln);color:var(--blue-dk);font-weight:600}
+.extopt input{display:none}
+.phones{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.phone{width:296px;background:var(--dark);border:9px solid #0d0f14;border-radius:30px;overflow:hidden;box-shadow:0 8px 26px rgba(0,0,0,.2)}
+.phd{padding:11px 13px;background:var(--dark2);border-bottom:1px solid var(--dark-line);color:#fff;font-size:13px;font-weight:700}
+.phb{padding:13px;display:flex;flex-direction:column;gap:11px;min-height:260px}
+.chat{background:var(--dark);border:1px solid #10131a;border-radius:12px;overflow:hidden;display:grid;grid-template-columns:196px 1fr;min-height:500px;color:var(--dark-txt)}
+@media(max-width:860px){.chat{grid-template-columns:1fr}.chat .csb{display:none}}
+.csb{background:var(--dark3);border-right:1px solid var(--dark-line);padding:12px 8px}
+.csb .ch{font-size:10.5px;color:#79808d;font-weight:700;padding:8px 8px 5px;letter-spacing:.04em}
+.csb a{display:flex;gap:7px;padding:6px 8px;border-radius:6px;color:#aab2be;font-size:12.5px;text-decoration:none}
+.csb a.on{background:#2b313c;color:#fff}
+.cmain{display:flex;flex-direction:column}
+.chd{display:flex;align-items:center;gap:10px;padding:11px 15px;border-bottom:1px solid var(--dark-line);background:var(--dark2);flex-wrap:wrap}
+.cav{width:29px;height:29px;border-radius:8px;background:var(--blue);display:grid;place-items:center;font-size:12px}
+.chd b{font-size:13.5px;color:#fff}.chd span{font-size:11px;color:#79808d;display:block}
+.cbody{padding:15px;flex:1;display:flex;flex-direction:column;gap:13px;overflow:auto}
+.msg{display:flex;gap:10px}
+.mav{width:29px;height:29px;border-radius:50%;background:#3a4150;display:grid;place-items:center;font-size:11.5px;flex:none;color:#c3c9d4}
+.mname{font-size:12.5px;font-weight:700;color:#fff;margin-bottom:5px}
+.mtime{font-size:10.5px;color:#79808d;font-weight:400;margin-left:7px}
+.bub{background:#2b313c;border-radius:9px;padding:9px 12px;font-size:12.8px;max-width:520px}
+.fcard{background:#2b313c;border:1px solid #39404d;border-radius:10px;padding:10px 11px;display:flex;align-items:center;gap:11px;max-width:470px;cursor:pointer}
+.fcard:hover{border-color:#4d5665}
+.fcard.locked{cursor:not-allowed;opacity:.72;border-style:dashed}
+.fico{width:33px;height:33px;border-radius:7px;display:grid;place-items:center;font-size:9.5px;font-weight:800;color:#fff;flex:none}
+.fcard .fi{min-width:0;flex:1}
+.fcard .fn{font-size:12.8px;font-weight:600;color:#eef1f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fcard .fs{font-size:11px;color:#8c94a1;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.actions{display:flex;gap:5px;flex:none}
+.act{width:29px;height:29px;border-radius:7px;background:#353c48;display:grid;place-items:center;font-size:12.5px;color:#c3c9d4;position:relative}
+.act:hover{background:#414958;color:#fff}
+.act.primary{background:var(--blue);color:#fff}
+.act.off{background:#2a2f39;color:#5c6472;cursor:not-allowed;border:1px dashed #414958}
+.act.pol{border:1px dashed #6b4a86;color:#8b6bab}
+.aff{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#3a4150;color:#a9b2bf}
+.aff.p-open{background:#3b3160;color:#c4b5fd}.aff.p-view{background:#1e3a5f;color:#93c5fd}
+.aff.p-dl{background:#14472f;color:#86efac}.aff.p-block{background:#4a2320;color:#fca5a5}
+.aff.p-pol{background:#3a2d16;color:#fcd34d}
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f1218;color:#e8ebf0;font-size:11.5px;padding:7px 10px;border-radius:7px;width:max-content;max-width:230px;text-align:center;opacity:0;pointer-events:none;transition:opacity .12s;z-index:50;box-shadow:0 5px 18px rgba(0,0,0,.35);border:1px solid #2b313c;line-height:1.45}
+[data-tip]:hover::after{opacity:1}
+.viewer{display:flex;gap:5px;background:#2b313c;padding:4px;border-radius:9px;margin-left:auto}
+.viewer button{padding:5px 11px;border-radius:6px;font-size:11.5px;font-weight:600;color:#a9b2bf}
+.viewer button.on{background:var(--blue);color:#fff}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.card-h{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card-h h3{font-size:14.5px;font-weight:700}
+.card-h p{font-size:12.5px;color:var(--mute);margin-top:2px}
+.card-b{padding:16px 18px}
+.savebar{position:sticky;bottom:0;display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fff;border-top:1px solid var(--line);box-shadow:0 -3px 12px rgba(16,24,40,.06);border-radius:0 0 12px 12px}
+.savebar .st{font-size:12.5px;color:var(--mute)}
+.savebar .st.dirty{color:#7a5a12;font-weight:600}
+.foot{font-size:12px;color:var(--mute);text-align:center;padding:18px 0}
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><div class="logo">···</div> Cliq — File Handling</div>
+    <div class="tabs" id="tabs">
+      <button data-v="admin" class="on">Conversations config</button>
+      <button data-v="desktop">Desktop</button>
+      <button data-v="mobile">Mobile</button>
+    </div>
+    <div class="hint">Toggles change the open tab; the rule dialog can apply to all apps.</div>
+  </div>
+
+  <div class="view on" id="v-admin">
+    <div class="admin">
+      <div class="admin-head"><div class="logo" style="width:24px;height:24px;font-size:11px">···</div>
+        <div class="crumb">Admin Panel &nbsp;&rsaquo;&nbsp; Organization - <b>Configurations</b></div></div>
+      <div class="admin-body">
+        <nav class="sidenav">
+          <h4>USERS &amp; PROFILES</h4><h4>ORGANIZATION</h4>
+          <a href="#">Company Info</a><a href="#" class="on">Configurations</a><a href="#">Networks</a>
+          <a href="#">Zoho Directory</a><a href="#">Licensing</a><a href="#">Media Domain Access</a>
+          <h4>AUTOMATION</h4><h4>PERMISSIONS</h4><h4>RESOURCE MANAGEMENT</h4><h4>CUSTOMIZATION</h4>
+        </nav>
+        <nav class="modules">
+          <div class="mt">Modules</div>
+          <a href="#" class="on"><span class="ic">💬</span> Conversations</a>
+          <a href="#"><span class="ic">◍</span> Status</a><a href="#"><span class="ic">🏠</span> Remote Work</a>
+          <a href="#"><span class="ic">🎥</span> Live Media</a><a href="#"><span class="ic">⏺</span> Recordings</a>
+          <a href="#"><span class="ic">📅</span> Calendar Events</a><a href="#"><span class="ic">✓</span> Tasks</a>
+        </nav>
+        <div>
+          <div class="cfg-title">Configurations &amp; Settings</div>
+          <div class="sec-head"><div class="si">💬</div><div class="grow">
+            <h3>CONVERSATIONS</h3><p>Allow your organization users to make use of chats and channels for their communications.</p></div></div>
+
+          <div class="block">
+            <div class="lbl" style="margin-bottom:9px">Upload Type</div>
+            <div style="margin-bottom:15px">
+              <label class="opt"><input type="checkbox" class="chk" checked> Upload from computer</label>
+              <label class="opt"><input type="checkbox" class="chk" checked> Attach from cloud</label>
+              <label class="opt"><input type="checkbox" class="chk" checked> Whiteboard</label>
+              <label class="opt"><input type="checkbox" class="chk" checked> Code Snippet</label>
+              <label class="opt"><input type="checkbox" class="chk" checked> Share from WorkDrive</label>
+              <label class="opt"><input type="checkbox" class="chk" checked> Peer to Peer file sharing</label>
+            </div>
+            <div class="row" style="margin-bottom:12px">
+              <div class="bul grow">• File attachment maximum file size upload limit</div>
+              <input class="inp" type="number" value="1024" style="width:110px;text-align:right">
+              <span style="font-size:12.5px;color:var(--mute)">mb</span>
+            </div>
+            <div class="row">
+              <div class="bul">• File Extensions</div>
+              <label class="opt"><input type="radio" name="em" class="radio" value="all"> Allow All</label>
+              <label class="opt"><input type="radio" name="em" class="radio" value="allow"> Allow specific extensions</label>
+              <label class="opt"><input type="radio" name="em" class="radio" value="block"> Block specific extensions</label>
+            </div>
+            <div id="extBox" style="margin-top:11px"></div>
+            <div id="extNote"></div>
+
+            <div class="fh">
+              <div class="fh-head"><div class="si">📂</div>
+                <div class="grow"><h4>File Handling</h4>
+                  <p>Once a file is in a chat, choose how each type opens.</p></div></div>
+              <div class="ptabs" id="ptabs"></div>
+              <div class="fh-body">
+                <div id="scopeNote"></div>
+                <div id="platNote"></div>
+                <div id="policyNote"></div>
+                <div id="rulesArea" style="margin-top:13px"></div>
+                <div id="ruleNotes"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tgrow"><div class="lbl">Delete messages</div><span class="tg on"></span></div>
+          <div class="tgrow"><div class="lbl">Edit messages</div><span class="tg on"></span></div>
+
+          <div class="savebar">
+            <span class="st" id="saveState">All changes saved</span>
+            <span style="margin-left:auto"></span>
+            <button class="btn gho" id="discardBtn">CANCEL</button>
+            <button class="btn pri" id="saveBtn">SAVE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="v-desktop">
+    <div class="card"><div class="card-h"><div class="grow"><h3>Desktop app</h3>
+      <p>Also Cliq Mini and Cliq inside the Mail app. Hover any dimmed button to see why it's off.</p></div>
+      <span class="pill star" id="dtSummary"></span></div></div>
+    <div class="chat">
+      <div class="csb"><div class="ch">CHANNELS</div>
+        <a href="#" class="on"># Product Design</a><a href="#"># pm-team</a><a href="#"># development</a>
+        <a href="#"># releases</a><div class="ch">DIRECT MESSAGES</div><a href="#">Robert</a><a href="#">Heera</a></div>
+      <div class="cmain">
+        <div class="chd"><div class="cav">#</div><div><b>Product Design</b><span>12 members · 2 external · 1 guest</span></div>
+          <div class="viewer" id="viewerSel">
+            <button data-w="member" class="on">Org member</button>
+            <button data-w="external">External user</button>
+            <button data-w="guest">Guest</button></div></div>
+        <div class="cbody">
+          <div class="msg"><div class="mav">R</div><div><div class="mname">Robert <span class="mtime">12:24 PM</span></div>
+            <div class="bub">Sharing everything before the review.</div></div></div>
+          <div class="msg"><div class="mav">H</div><div><div class="mname">Heera <span class="mtime">12:31 PM</span></div>
+            <div id="dtFiles" style="display:flex;flex-direction:column;gap:9px"></div></div></div>
+        </div></div></div>
+    <div class="card" style="margin-top:16px"><div class="card-h"><div><h3>Why each file behaves this way</h3></div></div>
+      <div class="card-b" id="dtLogic"></div></div>
+  </div>
+
+  <div class="view" id="v-mobile">
+    <div class="card"><div class="card-h"><div><h3>Mobile apps</h3>
+      <p>Phones can't be told which app to use. "Open" hands the file to the system.</p></div></div></div>
+    <div class="phones">
+      <div class="phone"><div class="phd">📱 iOS</div><div class="phb" id="iosFiles"></div></div>
+      <div class="phone"><div class="phd">🤖 Android</div><div class="phb" id="androidFiles"></div></div>
+    </div>
+  </div>
+
+  <div class="foot">Prototype v7</div>
+</div>
+
+<div class="ovl" id="ovl"><div class="modal" id="modal"></div></div>
+
+<script>
+const PRESETS={
+ pptx:{label:"Presentations",ext:[".ppt",".pptx",".key",".odp"],chip:"PPT",color:"#d24726",previewable:true,file:"sample_presentation.pptx",size:"4.2 MB",app:"PowerPoint"},
+ docx:{label:"Documents",ext:[".doc",".docx",".rtf",".odt",".txt"],chip:"DOC",color:"#2b5fd9",previewable:true,file:"product_spec_v4.docx",size:"820 KB",app:"Word"},
+ xlsx:{label:"Spreadsheets",ext:[".xls",".xlsx",".csv",".ods"],chip:"XLS",color:"#1d7044",previewable:true,file:"q3_metrics.xlsx",size:"1.1 MB",app:"Excel"},
+ pdf:{label:"PDF",ext:[".pdf"],chip:"PDF",color:"#c8332a",previewable:true,file:"security_review.pdf",size:"2.6 MB",app:"Acrobat"},
+ img:{label:"Images",ext:[".png",".jpg",".jpeg",".gif",".webp",".svg",".heic"],chip:"IMG",color:"#7a5fd3",previewable:true,file:"login_flow.png",size:"640 KB",app:"Photos"},
+ audio:{label:"Audio",ext:[".mp3",".wav",".m4a",".aac"],chip:"AUD",color:"#0f766e",previewable:true,file:"standup_recording.mp3",size:"7.4 MB",app:"Music"},
+ video:{label:"Video",ext:[".mp4",".mov",".mkv",".avi"],chip:"VID",color:"#be185d",previewable:true,file:"demo_walkthrough.mp4",size:"48 MB",app:"Video player"},
+ zip:{label:"Archives",ext:[".zip",".rar",".7z",".tar",".gz"],chip:"ZIP",color:"#6b7280",previewable:false,file:"assets_bundle.zip",size:"848 KB",app:"Archive Utility"},
+ code:{label:"Code",ext:[".js",".ts",".py",".java",".json",".xml",".sql"],chip:"DEV",color:"#0369a1",previewable:true,file:"deploy_script.py",size:"14 KB",app:"the code editor"},
+ exe:{label:"Programs",ext:[".exe",".msi",".dmg",".apk",".sh",".bat"],chip:"EXE",color:"#9a3412",previewable:false,file:"installer.exe",size:"22 MB",app:"the system"}
+};
+const PLATS=["desktop","web","ios","android"];
+const PLAT={
+ desktop:{name:"Desktop app",short:"Desktop",canOpen:true,note:null},
+ web:{name:"Web",short:"Web",canOpen:false,note:{k:"warn",t:"A browser can't hand a file to a desktop app, so <b>Open in default app</b> isn't offered here."}},
+ ios:{name:"iOS app",short:"iOS",canOpen:true,note:{k:"info",t:"iOS can't be told which app to use. <b>Open</b> shows the share sheet with the app the phone already uses."}},
+ android:{name:"Android app",short:"Android",canOpen:true,note:{k:"info",t:"Android opens the type's default app, or shows the chooser when none is set."}}
+};
+const LBL={view:"Preview in Cliq",open:"Open in default app",download:"Download",none:"Nothing"};
+const PIL={view:"view",open:"open",download:"dl",none:"block"};
+const POLICIES={externalCanView:false};
+const ROLES={member:{download:true},external:{download:true},guest:{download:false}};
+const VIEWERS={member:"Org member",external:"External user",guest:"Guest"};
+
+let rules=[];
+let fallback={id:0,t:"__other",ext:[],p:{}};
+PLATS.forEach(p=>fallback.p[p]={preview:true,open:false,download:true,click:"view"});
+let custom={}, uploadCfg={mode:"all",list:[]}, platform="desktop", nextId=1, dirty=false, pq="";
+
+function T(r){return r.t==="__other"
+  ?{label:"All other files",chip:"ANY",color:"#8a94a3",previewable:true,file:"meeting_notes.txt",size:"12 KB",app:"the default app"}
+  :(PRESETS[r.t]||custom[r.t]);}
+function findRule(id){id=+id;return id===0?fallback:rules.find(r=>r.id===id);}
+function markDirty(){dirty=true;renderSaveBar();}
+function renderSaveBar(){const s=document.getElementById("saveState");
+  s.textContent=dirty?"You have unsaved changes":"All changes saved";s.className="st"+(dirty?" dirty":"");}
+function blankCfg(pv,op,dl,ck){const o={};PLATS.forEach(p=>o[p]={preview:pv,open:op&&PLAT[p].canOpen,download:dl,click:ck});return o;}
+
+function allowedExt(list){const l=uploadCfg.list.map(x=>x.toLowerCase().trim());
+  if(uploadCfg.mode==="all")return list.slice();
+  if(uploadCfg.mode==="allow")return list.filter(e=>l.includes(e.toLowerCase()));
+  return list.filter(e=>!l.includes(e.toLowerCase()));}
+function claimed(excludeId){const m=new Map();
+  rules.forEach(r=>{if(excludeId!=null&&r.id===excludeId)return;r.ext.forEach(e=>m.set(e,T(r).label));});return m;}
+function liveExt(r){return r.t==="__other"?[]:allowedExt(r.ext);}
+function uploadState(r){if(r.t==="__other")return{allowed:uploadCfg.mode!=="allow"||uploadCfg.list.length===0,ok:[],blocked:[]};
+  const ok=liveExt(r);return{allowed:ok.length>0,ok,blocked:r.ext.filter(e=>!ok.includes(e))};}
+function varies(r){const j=p=>JSON.stringify(r.p[p]);return PLATS.some(p=>j(p)!==j("desktop"));}
+
+function resolve(r,plat,who){
+  who=who||"member";
+  const t=T(r),P=PLAT[plat],flags=[],why={},layers=[],cfg=r.p[plat];
+  let preview=cfg.preview,open=cfg.open,download=cfg.download;
+  const u=uploadState(r);
+  if(!u.allowed){preview=open=download=false;layers.push({n:"File Extensions",v:"can't be uploaded"});
+    flags.push({k:"warn",t:`Uploads are blocked for ${r.ext.join(", ")} under <b>File Extensions</b> above, so there is nothing to configure. Files shared before the restriction stay locked.`});}
+  if(!cfg.preview)why.view="Preview is turned off by your admin";
+  if(!cfg.open)why.open="Opening in another app is turned off by your admin";
+  if(!cfg.download)why.download="Downloads are turned off by your admin";
+  if(who==="external"&&!POLICIES.externalCanView){
+    why.view=why.open=why.download="Your organisation doesn't share files with people outside it";
+    return{preview:false,open:false,download:false,click:"none",avail:[],flags,why,
+      layers:[{n:"External-files policy",v:"external users can't view files"}],
+      policyBlocked:true,reason:"Your organisation doesn't share files outside it."};}
+  if(download&&!ROLES[who].download){download=false;
+    why.download="Your role can't download files";layers.push({n:"Role permissions",v:`${VIEWERS[who]} can't download`});}
+  if(preview&&!t.previewable){preview=false;why.view="Cliq can't preview this file type";}
+  if(open&&!P.canOpen){open=false;why.open=`${P.name} can't open files in another app`;}
+  if(open&&!download)flags.push({k:"info",t:"Opening writes a temporary copy outside the Downloads folder, cleared when Cliq closes."});
+  const avail=[];if(preview)avail.push("view");if(open)avail.push("open");if(download)avail.push("download");
+  let click="none";
+  if(avail.length)click=avail.includes(cfg.click)?cfg.click:avail[0];
+  else if(u.allowed)flags.push({k:"err",t:"Every action is off — people see the file name but can't open it."});
+  return{preview,open,download,click,avail,flags,why,layers};
+}
+
+/* ---------- shell ---------- */
+function renderPTabs(){document.getElementById("ptabs").innerHTML=
+  PLATS.map(p=>`<button data-p="${p}" class="${p===platform?"on":""}">${PLAT[p].name}</button>`).join("");}
+document.getElementById("ptabs").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-p]");if(!b)return;platform=b.dataset.p;renderAll();});
+function renderScope(){document.getElementById("scopeNote").innerHTML=
+  `<div class="scope"><span>⚙️</span><div>You're viewing the <b>${PLAT[platform].name}</b>.
+    Toggles here change this app only — open a rule to apply settings to all four at once.</div></div>`;}
+function renderPlatNote(){const n=PLAT[platform].note;
+  document.getElementById("platNote").innerHTML=n
+    ?`<div class="note ${n.k}"><span class="ni">${n.k==="warn"?"⚠️":"ℹ️"}</span><div>${n.t}</div></div>`:"";}
+function renderPolicyNote(){
+  const bits=[];
+  if(!POLICIES.externalCanView)bits.push("<b>External users can't view files at all</b> — no rule below applies to them.");
+  const nd=Object.keys(ROLES).filter(k=>!ROLES[k].download).map(k=>VIEWERS[k]);
+  if(nd.length)bits.push(`<b>${nd.join(" and ")} can't download</b> — the download button is hidden for them even where you allow it.`);
+  document.getElementById("policyNote").innerHTML=bits.length
+    ?`<div class="note pol"><span class="ni">🛈</span><div><b>Some people will see less than this.</b><br>
+       ${bits.map(b=>"• "+b).join("<br>")}<br>
+       <span style="opacity:.85">Set in Permissions › Policies and Permissions › Roles. The stricter setting always wins.</span></div></div>`:"";}
+
+/* ---------- rules ---------- */
+function tgCell(r,k,lock){
+  if(lock)return `<span class="tg dis" data-tip="Uploads are blocked for this type"></span>`;
+  return `<span class="tg ${r.p[platform][k]?"on":""}" data-id="${r.id}" data-k="${k}" role="switch" tabindex="0" aria-checked="${r.p[platform][k]}"></span>`;}
+function clickOpts(r,R){const cfg=r.p[platform];
+  if(!R.avail.length)return `<option>Nothing available</option>`;
+  return R.avail.map(a=>`<option value="${a}"${(cfg.click===a||(!R.avail.includes(cfg.click)&&a===R.avail[0]))?" selected":""}>${LBL[a]}</option>`).join("");}
+function ruleRow(r,isFb){
+  const t=T(r),u=uploadState(r),lock=!u.allowed,isC=!!custom[r.t],R=resolve(r,platform);
+  const exts=u.ok.length?u.ok.join(" "):r.ext.join(" ");
+  return `<tr class="${lock?"dis":""} ${isFb?"fb":""}">
+   <td><div class="ftype"><span class="fchip" style="background:${t.color}">${t.chip}</span>
+    <div><div class="fname">${t.label}
+      ${lock?`<span class="mini blk">uploads blocked</span>`:""}
+      ${isC?`<span class="mini cus">custom</span>`:""}
+      ${!isFb&&varies(r)?`<span class="mini var" data-tip="This rule is set differently on other apps">varies by app</span>`:""}</div>
+    ${isFb?`<div class="fmeta plain">Anything without its own rule</div>`:`<div class="fmeta">${exts}</div>`}</div></div></td>
+   <td class="c">${!t.previewable?`<span class="na" data-tip="Cliq can't render this file type">not supported</span>`:tgCell(r,"preview",lock)}</td>
+   <td class="c">${!PLAT[platform].canOpen?`<span class="tg dis" data-tip="A browser can't open files in another app"></span>`:tgCell(r,"open",lock)}</td>
+   <td class="c">${tgCell(r,"download",lock)}</td>
+   <td><select class="sel" data-id="${r.id}" data-k="click" ${R.avail.length?"":"disabled"}>${clickOpts(r,R)}</select></td>
+   <td style="white-space:nowrap">
+     ${isFb?"":`<button class="icb" data-edit="${r.id}" title="Edit rule">✎</button><button class="icb del" data-del="${r.id}" title="Remove rule">✕</button>`}
+     ${lock&&!isFb?`<br><button class="btn tiny gho" data-allow="${r.id}">Allow upload</button>`:""}</td></tr>`;}
+function renderRules(){
+  const area=document.getElementById("rulesArea");
+  const head=`<div class="row" style="margin-bottom:6px">
+      <div class="grow"><div class="lbl">Rules by file type</div>
+        <div class="sub">${rules.length?`${rules.length} rule${rules.length>1?"s":""} · each extension belongs to one rule`:"No rules yet."}</div></div>
+      <div class="picker"><button class="btn gho sm" id="addBtn">+ Add rule</button><div class="pmenu" id="pmenu"></div></div></div>`;
+  const thead=`<thead><tr><th style="width:28%">File type</th><th class="c">Preview in Cliq</th>
+      <th class="c">Open in default app</th><th class="c">Download</th>
+      <th style="width:18%">Clicking the file</th><th style="width:62px"></th></tr></thead>`;
+  let body;
+  if(rules.length){
+    body=`<table class="rules">${thead}<tbody>${rules.map(r=>ruleRow(r,false)).join("")}${ruleRow(fallback,true)}</tbody></table>`;
+  }else{
+    const R=resolve(fallback,platform);
+    body=`<div class="empty"><div class="ei">📂</div><h5>No file type rules yet</h5>
+      <p>Right now every file in your org behaves the same way. Add a rule when one type needs different treatment —
+         for example opening presentations in PowerPoint instead of previewing them in Cliq.</p>
+      <button class="btn pri" id="addBtnEmpty">+ Add your first rule</button></div>
+      <div class="defcard"><h5><span class="fchip" style="background:#8a94a3">ANY</span> What happens today — every file, no exceptions</h5>
+        <p>Until you add a rule, this one setting covers every file people share on the ${PLAT[platform].name}.</p>
+        <div class="defrow">
+          <div class="defitem"><span class="tg ${fallback.p[platform].preview?"on":""}" data-id="0" data-k="preview" role="switch" tabindex="0"></span> Preview in Cliq</div>
+          <div class="defitem"><span class="tg ${fallback.p[platform].open?"on":""} ${PLAT[platform].canOpen?"":"dis"}" ${PLAT[platform].canOpen?`data-id="0" data-k="open" role="switch" tabindex="0"`:`data-tip="A browser can't open files in another app"`}></span> Open in default app</div>
+          <div class="defitem"><span class="tg ${fallback.p[platform].download?"on":""}" data-id="0" data-k="download" role="switch" tabindex="0"></span> Download</div>
+          <div class="defitem" style="margin-left:auto">Clicking a file
+            <select class="sel" data-id="0" data-k="click" ${R.avail.length?"":"disabled"}>${clickOpts(fallback,R)}</select></div>
+        </div></div>`;}
+  area.innerHTML=head+body;
+  bindPicker();
+  const eb=document.getElementById("addBtnEmpty");
+  if(eb)eb.onclick=ev=>{ev.stopPropagation();openPicker();};
+  const notes=[],seen=new Set();
+  [...rules,fallback].forEach(r=>resolve(r,platform).flags.forEach(f=>{
+    const k=T(r).label+f.t;if(!seen.has(k)){seen.add(k);notes.push({...f,who:T(r).label});}}));
+  document.getElementById("ruleNotes").innerHTML=notes.map(n=>
+    `<div class="note ${n.k}"><span class="ni">${n.k==="err"?"⛔":n.k==="warn"?"⚠️":"ℹ️"}</span><div><b>${n.who}:</b> ${n.t}</div></div>`).join("");}
+function renderAll(){renderPTabs();renderScope();renderPlatNote();renderPolicyNote();renderRules();renderProduct();}
+
+document.getElementById("rulesArea").addEventListener("click",e=>{
+  const tg=e.target.closest(".tg:not(.dis)"),del=e.target.closest("[data-del]"),
+        al=e.target.closest("[data-allow]"),ed=e.target.closest("[data-edit]");
+  if(tg){const r=findRule(tg.dataset.id),cfg=r.p[platform];cfg[tg.dataset.k]=!cfg[tg.dataset.k];
+    const R=resolve(r,platform);if(!R.avail.includes(cfg.click))cfg.click=R.avail[0]||"none";
+    markDirty();renderAll();return;}
+  if(del){confirmDelete(findRule(del.dataset.del));return;}
+  if(al){const r=findRule(al.dataset.allow);
+    if(uploadCfg.mode==="allow")uploadCfg.list=[...new Set([...uploadCfg.list,...r.ext])];
+    else uploadCfg.list=uploadCfg.list.filter(x=>!r.ext.includes(x));
+    syncUploadUI();markDirty();renderAll();toast(`${T(r).label} can now be uploaded.`);return;}
+  if(ed){const r=findRule(ed.dataset.edit);custom[r.t]?customModal(r):actionsModal(r.t,r);}});
+document.getElementById("rulesArea").addEventListener("keydown",e=>{
+  const tg=e.target.closest(".tg:not(.dis)");if(tg&&(e.key===" "||e.key==="Enter")){e.preventDefault();tg.click();}});
+document.getElementById("rulesArea").addEventListener("change",e=>{
+  const s=e.target.closest("select[data-k]");if(!s)return;
+  findRule(s.dataset.id).p[platform].click=s.value;markDirty();renderAll();});
+document.getElementById("saveBtn").onclick=()=>{dirty=false;renderSaveBar();toast("Configuration saved.");};
+document.getElementById("discardBtn").onclick=()=>{dirty=false;renderSaveBar();toast("Changes discarded.");};
+
+/* ---------- add-rule picker ---------- */
+function addableExt(key){const c=claimed(null);
+  return allowedExt((PRESETS[key]||custom[key]).ext).filter(e=>!c.has(e));}
+function bindPicker(){const b=document.getElementById("addBtn");if(!b)return;
+  b.onclick=ev=>{ev.stopPropagation();
+    const m=document.getElementById("pmenu");
+    if(m.classList.contains("on")){m.classList.remove("on");return;}openPicker();};}
+function openPicker(){pq="";renderPicker();document.getElementById("pmenu").classList.add("on");
+  const s=document.getElementById("psearch");if(s)s.focus();}
+function renderPicker(){
+  const entries=[...Object.entries(PRESETS),...Object.entries(custom)];
+  const items=entries.map(([k,t])=>[k,t,addableExt(k)])
+    .filter(([,t,ok])=>ok.length>0&&(!pq||t.label.toLowerCase().includes(pq)||ok.some(e=>e.includes(pq))));
+  const list=items.length
+    ? `<div class="ph">FILE TYPES</div>`+items.map(([k,t,ok])=>`
+        <button class="pi" data-add="${k}"><div class="grow">
+          <div class="pl"><span class="fchip" style="background:${t.color}">${t.chip}</span>${t.label}</div>
+          <div class="px">${ok.join("  ")}</div></div><span class="pt">${ok.length} EXT</span></button>`).join("")
+    : `<div class="pempty">${pq?"Nothing matches that search.":"Every available file type already has a rule."}</div>`;
+  document.getElementById("pmenu").innerHTML=`
+    <div class="psearch"><input class="inp" id="psearch" placeholder="Search a type or extension…" value="${pq}"></div>
+    <div class="plist">${list}</div>
+    <div class="pfoot"><button class="pi" data-add="__custom" style="width:100%">
+      <div class="grow"><div class="pl"><span class="fchip" style="background:var(--purple)">+</span>Custom rule…</div>
+      <div class="px" style="font-family:inherit">Name your own group of extensions</div></div></button></div>`;
+  const s=document.getElementById("psearch");
+  s.oninput=()=>{const v=s.value;pq=v.toLowerCase().trim();renderPicker();
+    const n=document.getElementById("psearch");n.focus();n.setSelectionRange(v.length,v.length);};
+  s.onclick=ev=>ev.stopPropagation();}
+document.addEventListener("click",e=>{
+  const m=document.getElementById("pmenu");
+  if(m&&!e.target.closest(".picker")&&!e.target.closest("#addBtnEmpty"))m.classList.remove("on");});
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-add]");if(!b)return;
+  document.getElementById("pmenu").classList.remove("on");
+  if(b.dataset.add==="__custom")return customModal();
+  actionsModal(b.dataset.add);});
+
+/* ---------- actions dialog (apply-to-all restored) ---------- */
+function actionsModal(key,existing){
+  const t=PRESETS[key]||custom[key],isEdit=!!existing;
+  const exts=existing?liveExt(existing):addableExt(key);
+  const cur=existing?existing.p[platform]:{preview:t.previewable,open:false,download:true,click:null};
+  const canOpen=PLAT[platform].canOpen;
+  const m=document.getElementById("modal");m.className="modal";
+  m.innerHTML=`<h4>${isEdit?"Edit":"Add"} rule — ${t.label}</h4>
+    <div class="msub">Choose what people can do with these files.</div>
+    <div class="headchip"><span class="fchip" style="background:${t.color}">${t.chip}</span>
+      <span style="font-family:ui-monospace,Menlo,monospace">${exts.join("  ")}</span></div>
+    <div class="fld"><label>What people can do</label>
+      <div class="actbox">
+        <label class="${t.previewable?"":"off"}"><input type="checkbox" class="chk" id="aPrev" ${cur.preview&&t.previewable?"checked":""} ${t.previewable?"":"disabled"}>
+          <span>Preview in Cliq<span class="d">${t.previewable?"Opens inside Cliq. Nothing is saved to the device.":"Cliq can't display this file type."}</span></span></label>
+        <label class="${canOpen?"":"off"}"><input type="checkbox" class="chk" id="aOpen" ${cur.open&&canOpen?"checked":""} ${canOpen?"":"disabled"}>
+          <span>Open in default app<span class="d">${canOpen?"Hands the file to whatever app the device uses for this type.":"A browser can't hand a file to another app."}</span></span></label>
+        <label><input type="checkbox" class="chk" id="aDown" ${cur.download?"checked":""}>
+          <span>Download<span class="d">Saves a copy the person keeps.</span></span></label>
+      </div><div class="h" id="aErr"></div></div>
+    <div class="fld"><label>Clicking the file</label>
+      <select class="sel" id="aClick" style="width:100%"></select>
+      <div class="h">Only what you allowed above can be chosen.</div></div>
+    <div class="fld" style="margin-bottom:6px"><label style="font-weight:500;display:flex;gap:8px;align-items:flex-start;cursor:pointer">
+      <input type="checkbox" class="chk" id="aAll" checked>
+      <span>Apply to all four apps<span class="h" style="margin-top:2px">Uncheck to change the ${PLAT[platform].name} only. Opening in another app is never available on web.</span></span></label></div>
+    <div class="mbtns"><button class="btn gho" data-close>Cancel</button>
+      <button class="btn pri" id="aSave">${isEdit?"Save rule":"Add rule"}</button></div>`;
+  document.getElementById("ovl").classList.add("on");
+  const sync=()=>{
+    const p=document.getElementById("aPrev").checked,o=document.getElementById("aOpen").checked,d=document.getElementById("aDown").checked;
+    const list=[];if(p)list.push("view");if(o)list.push("open");if(d)list.push("download");
+    const sel=document.getElementById("aClick");
+    sel.innerHTML=list.length?list.map(a=>`<option value="${a}"${cur.click===a?" selected":""}>${LBL[a]}</option>`).join("")
+      :`<option>Nothing available</option>`;
+    sel.disabled=!list.length;
+    const err=document.getElementById("aErr");
+    err.className="h"+(list.length?"":" bad");
+    err.textContent=list.length?"":"Pick at least one action, or nobody can open these files.";
+    document.getElementById("aSave").disabled=!list.length;};
+  ["aPrev","aOpen","aDown"].forEach(id=>document.getElementById(id).onchange=sync);sync();
+  document.getElementById("aSave").onclick=()=>{
+    const base={preview:document.getElementById("aPrev").checked,open:document.getElementById("aOpen").checked,
+      download:document.getElementById("aDown").checked,click:document.getElementById("aClick").value};
+    const all=document.getElementById("aAll").checked;
+    const r=existing||{id:nextId++,t:key,ext:exts.slice(),p:blankCfg(false,false,false,"none")};
+    if(all)PLATS.forEach(p=>{const c={...base};if(!PLAT[p].canOpen)c.open=false;
+      const av=[];if(c.preview)av.push("view");if(c.open)av.push("open");if(c.download)av.push("download");
+      if(!av.includes(c.click))c.click=av[0]||"none";r.p[p]=c;});
+    else r.p[platform]={...base};
+    if(!existing)rules.push(r);
+    document.getElementById("ovl").classList.remove("on");markDirty();renderAll();
+    toast(all?"Saved for all four apps.":`Saved for the ${PLAT[platform].name} only.`);};}
+
+/* ---------- custom rule ----------
+   In "Allow specific extensions" mode the admin picks from exactly what's allowed.
+   In "Allow All" / "Block specific" modes a picklist would be meaningless, so it's free text. */
+function customModal(existing){
+  const ex=existing?custom[existing.t]:null;
+  const c=claimed(existing?existing.id:null);
+  const pickMode=uploadCfg.mode==="allow";
+  const m=document.getElementById("modal");m.className="modal";
+
+  if(!pickMode){
+    m.innerHTML=`<h4>${ex?"Edit":"New"} custom rule</h4>
+      <div class="msub">Group any extensions under a name your admins will recognise.</div>
+      <div class="fld"><label>Rule name</label><input class="inp" id="cName" placeholder="e.g. CAD drawings" value="${ex?ex.label:""}"></div>
+      <div class="fld"><label>Extensions</label><input class="inp" id="cExt" placeholder=".dwg, .dxf, .step" value="${existing?existing.ext.join(", "):""}">
+        <div class="h" id="cHint">Comma separated. The dot is optional.</div></div>
+      <div class="fld"><label>Short tag</label><input class="inp" id="cChip" placeholder="CAD" maxlength="4" style="width:110px" value="${ex?ex.chip:""}"></div>
+      <div class="mbtns"><button class="btn gho" data-close>Cancel</button>
+        <button class="btn pri" id="cNext">Next: choose actions</button></div>`;
+    document.getElementById("ovl").classList.add("on");
+    const parse=()=>document.getElementById("cExt").value.split(",").map(s=>s.trim()).filter(Boolean)
+      .map(s=>s.startsWith(".")?s.toLowerCase():"."+s.toLowerCase());
+    let ok=false;
+    const check=()=>{
+      const exts=parse(),h=document.getElementById("cHint"),inp=document.getElementById("cExt"),btn=document.getElementById("cNext");
+      if(!exts.length){h.className="h";h.textContent="Comma separated. The dot is optional.";
+        inp.classList.remove("bad");btn.disabled=true;ok=false;return;}
+      const dupes=exts.filter(e=>c.has(e)),notUp=exts.filter(e=>!allowedExt([e]).length);
+      if(dupes.length){h.className="h bad";
+        h.textContent=dupes.map(e=>`${e} is already covered by the ${c.get(e)} rule`).join(". ")+". Remove it here, or edit that rule instead.";
+        inp.classList.add("bad");btn.disabled=true;ok=false;return;}
+      inp.classList.remove("bad");btn.disabled=false;ok=true;
+      if(notUp.length){h.className="h bad";
+        h.textContent=`${notUp.join(", ")} is blocked under File Extensions, so the rule won't do anything for it yet.`;}
+      else{h.className="h";h.textContent=`${exts.length} extension${exts.length>1?"s":""} — ${exts.join(", ")}`;}};
+    document.getElementById("cExt").oninput=check;check();
+    document.getElementById("cNext").onclick=()=>{
+      const n=document.getElementById("cName").value.trim(),exts=parse();
+      if(!n||!exts.length||!ok)return toast("Add a name and extensions that aren't already used.");
+      saveCustom(existing,n,exts,document.getElementById("cChip").value.trim());};
+    return;
+  }
+
+  /* allow-specific mode — pick from the allowed list only */
+  const pool=uploadCfg.list.filter(e=>!c.has(e));
+  const taken=uploadCfg.list.length-pool.length;
+  let sel=new Set((existing?existing.ext:[]).filter(e=>uploadCfg.list.includes(e))), q="";
+  m.innerHTML=`<h4>${ex?"Edit":"New"} custom rule</h4>
+    <div class="msub">Group any extensions under a name your admins will recognise.</div>
+    <div class="fld"><label>Rule name</label><input class="inp" id="cName" placeholder="e.g. Media files" value="${ex?ex.label:""}"></div>
+    <div class="fld"><label>Extensions</label>
+      <div class="extbox" style="padding:0">
+        ${pool.length>10?`<div style="padding:9px 11px;border-bottom:1px solid var(--line)">
+          <input class="inp" id="cSearch" placeholder="Search…"></div>`:""}
+        <div id="cList" style="padding:11px;display:flex;flex-wrap:wrap;gap:6px;max-height:190px;overflow:auto"></div>
+        <div style="padding:9px 11px;border-top:1px solid var(--line);background:#fff;border-radius:0 0 9px 9px">
+          <div class="h" id="cHint">Only extensions your org allows are listed${taken?`, minus ${taken} already used by another rule`:""}.</div>
+        </div></div></div>
+    <div class="fld"><label>Short tag</label><input class="inp" id="cChip" placeholder="MED" maxlength="4" style="width:110px" value="${ex?ex.chip:""}"></div>
+    <div class="mbtns"><span id="cCount" style="margin-right:auto;font-size:12.5px;color:var(--mute)"></span>
+      <button class="btn gho" data-close>Cancel</button>
+      <button class="btn pri" id="cNext">Next: choose actions</button></div>`;
+  document.getElementById("ovl").classList.add("on");
+  const draw=()=>{
+    const hits=pool.filter(e=>!q||e.includes(q));
+    document.getElementById("cList").innerHTML=hits.length
+      ? hits.map(e=>`<label class="extopt ${sel.has(e)?"on":""}">
+          <input type="checkbox" data-ext="${e}" ${sel.has(e)?"checked":""}>${e}</label>`).join("")
+      : `<div style="font-size:12.5px;color:var(--mute);padding:6px">
+          ${q?`Nothing matches “${q}”.`:"Every allowed extension already belongs to a rule."}</div>`;
+    document.getElementById("cCount").textContent=`${sel.size} of ${pool.length} selected`;
+    document.getElementById("cNext").disabled=!sel.size||!document.getElementById("cName").value.trim();
+    m.querySelectorAll("[data-ext]").forEach(cb=>cb.onchange=()=>{
+      cb.checked?sel.add(cb.dataset.ext):sel.delete(cb.dataset.ext);draw();});};
+  draw();
+  const sb=document.getElementById("cSearch");
+  if(sb)sb.oninput=e=>{q=e.target.value.toLowerCase().trim();draw();};
+  document.getElementById("cName").oninput=draw;
+  document.getElementById("cNext").onclick=()=>{
+    const n=document.getElementById("cName").value.trim(),exts=[...sel];
+    if(!n||!exts.length)return toast("Add a name and pick at least one extension.");
+    saveCustom(existing,n,exts,document.getElementById("cChip").value.trim());};
+}
+function saveCustom(existing,name,exts,chip){
+  const key=existing?existing.t:"c"+nextId;
+  custom[key]={label:name,ext:exts,chip:(chip||name.slice(0,3)).toUpperCase(),
+    color:"#5b3fc4",previewable:true,file:"example"+exts[0],size:"1.4 MB",app:"the default app"};
+  if(existing)existing.ext=exts.slice();
+  document.getElementById("ovl").classList.remove("on");
+  setTimeout(()=>actionsModal(key,existing),120);}
+
+function confirmDelete(r){
+  const t=T(r),R=resolve(fallback,platform);
+  const m=document.getElementById("modal");m.className="modal";
+  m.innerHTML=`<h4>Remove the ${t.label} rule?</h4>
+    <p>${r.ext.join(", ")} will fall back to <b>All other files</b> on every app, which currently allows
+      ${R.avail.length?R.avail.map(a=>LBL[a].toLowerCase()).join(", "):"nothing"}.</p>
+    <div class="mbtns"><button class="btn gho" data-close>Keep rule</button>
+      <button class="btn pri" id="dYes" style="background:var(--red)">Remove rule</button></div>`;
+  document.getElementById("ovl").classList.add("on");
+  document.getElementById("dYes").onclick=()=>{rules=rules.filter(x=>x.id!==r.id);
+    document.getElementById("ovl").classList.remove("on");markDirty();renderAll();toast("Rule removed.");};}
+
+/* ---------- File Extensions (simple text input, as before) ---------- */
+function syncUploadUI(){
+  document.querySelectorAll('input[name="em"]').forEach(i=>i.checked=i.value===uploadCfg.mode);
+  const box=document.getElementById("extBox");
+  box.innerHTML=uploadCfg.mode==="all"?"":
+    `<div class="row"><div class="bul" style="min-width:230px"></div>
+      <input class="inp" id="extList" style="max-width:400px" value="${uploadCfg.list.join(", ")}"
+       placeholder="${uploadCfg.mode==="allow"?"Enter allowed extensions (eg: .pdf, .docx)":"Enter blocked extensions (eg: .exe, .zip)"}">
+      <button class="btn gho sm" id="extApply">Apply</button></div>`;
+  if(uploadCfg.mode!=="all")document.getElementById("extApply").onclick=()=>{
+    uploadCfg.list=document.getElementById("extList").value.split(",").map(s=>s.trim()).filter(Boolean)
+      .map(s=>s.startsWith(".")?s.toLowerCase():"."+s.toLowerCase());
+    syncUploadUI();markDirty();renderAll();toast("File extension rules updated.");};
+  renderExtNote();}
+function renderExtNote(){
+  const lock=rules.filter(r=>!uploadState(r).allowed).map(r=>T(r).label);
+  const part=rules.filter(r=>{const u=uploadState(r);return u.allowed&&u.blocked.length;})
+    .map(r=>`${T(r).label} (${uploadState(r).blocked.join(", ")} blocked)`);
+  let h="";
+  if(lock.length)h+=`<div class="note warn"><span class="ni">⚠️</span><div><b>${lock.length} rule${lock.length>1?"s are":" is"} now locked:</b> ${lock.join(", ")}.
+    A type that can't be uploaded can't be previewed, opened or downloaded.</div></div>`;
+  if(part.length)h+=`<div class="note info"><span class="ni">ℹ️</span><div><b>Partly covered:</b> ${part.join("; ")} — each rule applies only to the extensions still allowed.</div></div>`;
+  document.getElementById("extNote").innerHTML=h;}
+document.querySelectorAll('input[name="em"]').forEach(i=>i.addEventListener("change",e=>{
+  uploadCfg.mode=e.target.value;syncUploadUI();markDirty();renderAll();}));
+
+
+/* ---------- product ---------- */
+let viewer="member";
+function fileCard(r,plat,compact){
+  const t=T(r),R=resolve(r,plat,viewer),blocked=!R.avail.length;
+  const aff={view:"p-view",open:"p-open",download:"p-dl",none:R.policyBlocked?"p-pol":"p-block"}[R.click];
+  const affTxt=blocked?(R.policyBlocked?"Not shared outside the org":"Blocked by admin")
+    :R.click==="open"?`Opens in ${t.app}`:R.click==="view"?"Opens preview":"Downloads";
+  const acts=[{k:"view",i:"👁",on:R.preview},{k:"open",i:"↗",on:R.open},{k:"download",i:"⭳",on:R.download}]
+    .map(a=>{if(a.on)return `<button class="act ${a.k===R.click?"primary":""}" data-act="${a.k}" data-id="${r.id}" data-p="${plat}" data-tip="${LBL[a.k]}">${a.i}</button>`;
+      const w=(R.why&&R.why[a.k])||"Turned off by your admin";
+      return `<button class="act off ${/organisation|role/i.test(w)?"pol":""}" data-act="blocked" data-tip="${w}">${a.i}</button>`;}).join("");
+  return `<div class="fcard ${blocked?"locked":""}" data-id="${r.id}" data-p="${plat}">
+    <div class="fico" style="background:${t.color}">${t.chip}</div>
+    <div class="fi"><div class="fn">${blocked?"🔒 ":""}${t.file}</div>
+      <div class="fs"><span>${t.size}</span>${compact?"":`<span class="aff ${aff}">${affTxt}</span>`}</div></div>
+    <div class="actions">${acts}</div></div>`;}
+function renderProduct(){
+  const list=[...rules,fallback];
+  document.getElementById("dtFiles").innerHTML=list.map(r=>fileCard(r,"desktop")).join("");
+  document.getElementById("iosFiles").innerHTML=list.slice(0,4).map(r=>fileCard(r,"ios",true)).join("");
+  document.getElementById("androidFiles").innerHTML=list.slice(0,4).map(r=>fileCard(r,"android",true)).join("");
+  document.getElementById("dtSummary").textContent=`Viewing as ${VIEWERS[viewer]} · ${rules.length} rule${rules.length===1?"":"s"}`;
+  document.getElementById("dtLogic").innerHTML=list.map(r=>{
+    const t=T(r),R=resolve(r,"desktop",viewer);
+    const ch=(R.layers||[]).map(l=>`<span class="pill block">${l.n}: ${l.v}</span>`);
+    return `<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line2)">
+      <span class="fchip" style="background:${t.color}">${t.chip}</span><b style="min-width:130px">${t.label}</b>
+      ${ch.join("")}<span style="color:#c3c9d4">→</span>
+      ${R.avail.length?R.avail.map(a=>`<span class="pill ${PIL[a]}">${LBL[a]}</span>`).join(" "):`<span class="pill block">No access</span>`}
+      <span style="color:var(--mute);margin-left:auto">click → <b>${LBL[R.click]}</b></span></div>`;}).join("");}
+document.getElementById("viewerSel").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-w]");if(!b)return;viewer=b.dataset.w;
+  [...document.querySelectorAll("#viewerSel button")].forEach(x=>x.classList.toggle("on",x===b));renderProduct();});
+document.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-act]"),card=e.target.closest(".fcard");
+  if(btn){e.stopPropagation();if(btn.dataset.act==="blocked")return;return doAction(btn.dataset.act,btn.dataset.id,btn.dataset.p);}
+  if(card){const r=findRule(card.dataset.id);doAction(resolve(r,card.dataset.p,viewer).click,card.dataset.id,card.dataset.p);}});
+function doAction(act,id,plat){
+  const r=findRule(id),t=T(r),R=resolve(r,plat,viewer);
+  if(act==="none"||!R.avail.length)return modal("🔒","var(--red-bg)","Can't open this file",
+    R.policyBlocked?R.reason:(R.layers.some(l=>l.n==="File Extensions")?"This file type is blocked in your organisation.":"Your organisation doesn't allow this file type to be opened, previewed or downloaded."),
+    `<b>Note:</b> ${(r.ext.length?r.ext:["these"]).join(", ")} files are restricted by your admin.`);
+  if(act==="view")return modal("👁","var(--blue-bg)",`Preview — ${t.file}`,"The file opens inside Cliq. Nothing is saved to the device.","");
+  if(act==="open"){
+    if(plat==="ios")return modal("📤","var(--purple-bg)","Share sheet","iOS decides which app handles these files.",`<b>Suggested:</b> ${t.app}.`);
+    if(plat==="android")return modal("🤖","var(--purple-bg)","Opening in default app",`Android is opening ${t.file} in ${t.app}.`,"If no default is set, Android shows the chooser.");
+    return modal("↗","var(--purple-bg)",`Opening in ${t.app}`,`Cliq is handing ${t.file} to the app your computer uses for this type.`,
+      r.p[plat].download?"The file is saved to Downloads first.":"<b>Downloads are off for this type.</b> A temporary copy is created outside Downloads and removed when Cliq closes.");}
+  if(act==="download")return modal("⭳","var(--green-bg)","Downloading",`${t.file} (${t.size}) is being saved.`,"");}
+function modal(icon,bg,title,body,note){
+  const m=document.getElementById("modal");m.className="modal center";
+  m.innerHTML=`<div class="mi" style="background:${bg}">${icon}</div><h4>${title}</h4><p>${body}</p>
+    ${note?`<div class="mnote">${note}</div>`:""}
+    <div class="mbtns" style="justify-content:center"><button class="btn pri" data-close>Close</button></div>`;
+  document.getElementById("ovl").classList.add("on");}
+document.getElementById("ovl").addEventListener("click",e=>{
+  if(e.target.id==="ovl"||e.target.hasAttribute("data-close"))document.getElementById("ovl").classList.remove("on");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.getElementById("ovl").classList.remove("on");});
+function toast(m){const d=document.createElement("div");d.textContent=m;
+  d.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#22272f;color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;z-index:95;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:520px;text-align:center";
+  document.body.appendChild(d);setTimeout(()=>d.remove(),2800);}
+document.getElementById("tabs").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-v]");if(!b)return;
+  [...document.querySelectorAll("#tabs button")].forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="v-"+b.dataset.v));});
+syncUploadUI();renderAll();renderSaveBar();
+</script>
