@@ -1,0 +1,989 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cliq — File Handling v11</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#2b7de9;--blue-dk:#1a6fdc;--blue-bg:#eaf2fe;--blue-ln:#c7ddfb;
+  --ink:#22272f;--mute:#7c8698;--line:#e4e6eb;--line2:#eef0f3;--bg:#f4f6f8;
+  --red:#e8443a;--red-bg:#fdecea;--red-ln:#f6cfcb;
+  --amber:#b7791f;--amber-bg:#fef6e7;--amber-ln:#f0dcae;
+  --green:#1a9c5b;--green-bg:#e9f7ef;--green-ln:#c3e8d3;
+  --purple:#5b3fc4;--purple-bg:#f0ecfd;--purple-ln:#dcd2fa;
+  --dark:#1b1e25;--dark2:#22262e;--dark3:#16181d;--dark-line:#2f343e;--dark-txt:#d7dbe2;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+select,input{font:inherit;color:inherit}
+.wrap{max-width:1440px;margin:0 auto;padding:18px}
+.topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800}
+.vtag{font-size:10px;font-weight:800;background:var(--green);color:#fff;padding:2px 7px;border-radius:20px}
+.tabs{display:flex;gap:4px;background:#e7eaee;padding:4px;border-radius:10px;flex-wrap:wrap}
+.tabs button{padding:7px 13px;border-radius:7px;font-size:13px;font-weight:600;color:#5b6472}
+.tabs button.on{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.hint{font-size:12.5px;color:var(--mute);margin-left:auto}
+.view{display:none}.view.on{display:block}
+.admin{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+.admin-head{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line)}
+.crumb{font-size:14px;color:var(--mute)}.crumb b{color:var(--ink);font-weight:600}
+.admin-body{display:grid;grid-template-columns:196px 214px 1fr}
+@media(max-width:1120px){.admin-body{grid-template-columns:1fr}}
+.sidenav,.modules{border-right:1px solid var(--line);padding:14px 10px;background:#fff}
+.sidenav h4{font-size:10.5px;letter-spacing:.06em;color:#98a1b0;font-weight:700;padding:9px 10px 5px}
+.sidenav a{display:block;padding:6px 10px;border-radius:6px;color:#5b6472;font-size:13px;text-decoration:none}
+.sidenav a.on{background:var(--blue-bg);color:var(--blue);font-weight:600}
+.modules .mt{font-size:13px;font-weight:700;padding:4px 10px 10px}
+.modules a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;color:#4a5361;font-size:13px;text-decoration:none;margin-bottom:2px}
+.modules a.on{background:var(--blue-bg);color:var(--blue);font-weight:600}
+.modules .ic{width:17px;text-align:center;opacity:.85}
+.cfg-title{font-size:15px;font-weight:700;padding:14px 20px;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:12px;align-items:flex-start;padding:14px 20px;background:#f7f9fb;border-bottom:1px solid var(--line);border-left:3px solid var(--blue)}
+.sec-head .si{width:32px;height:32px;border-radius:8px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:15px;flex:none}
+.sec-head h3{font-size:13px;font-weight:700;letter-spacing:.04em}
+.sec-head p{font-size:12.5px;color:var(--mute);margin-top:2px}
+.grow{flex:1;min-width:0}
+.block{padding:16px 20px;border-bottom:1px solid var(--line2)}
+.row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.lbl{font-size:13.5px;font-weight:600}
+.sub{font-size:12.5px;color:var(--mute);margin-top:2px}
+.bul{font-size:13px;min-width:230px}
+.tgrow{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line2)}
+.fh{margin:14px 0 0;border:1px solid var(--line);border-radius:10px;background:#fff;position:relative}
+.fh-head{display:flex;align-items:center;gap:11px;padding:12px 15px;background:#f7f9fb;border-bottom:1px solid var(--line);border-radius:10px 10px 0 0}
+.fh-head .si{width:29px;height:29px;border-radius:8px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:14px;flex:none}
+.fh-head h4{font-size:13.5px;font-weight:700}
+.fh-head p{font-size:12px;color:var(--mute);margin-top:1px}
+.ptabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 15px;background:#fff;flex-wrap:wrap}
+.ptabs button{padding:10px 14px;font-size:13px;font-weight:600;color:var(--mute);border-bottom:2px solid transparent;margin-bottom:-1px}
+.ptabs button.on{color:var(--blue);border-bottom-color:var(--blue)}
+.fh-body{padding:14px 15px}
+.scope{font-size:12.5px;color:#4a5361;background:#f5f7fa;border:1px solid var(--line);border-radius:8px;padding:9px 12px;display:flex;gap:9px;align-items:flex-start}
+.rules{width:100%;border-collapse:collapse;margin-top:4px}
+.rules th{font-size:10.5px;letter-spacing:.03em;color:#8a94a3;font-weight:700;text-align:left;padding:10px 10px;border-bottom:1px solid var(--line)}
+.rules th.c,.rules td.c{text-align:center}
+.rules td{padding:14px 10px;border-bottom:1px solid var(--line2);vertical-align:middle}
+.rules tr.dis td{background:#fafbfc;opacity:.78}
+.rules tr.fb td{background:#f7f9fb}
+.ftype{display:flex;align-items:center;gap:11px}
+.fchip{font-size:10.5px;font-weight:700;color:#fff;padding:3px 6px;border-radius:5px;flex:none}
+.fname{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fmeta{font-size:11.5px;color:var(--mute);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.fmeta.plain{font-family:inherit}
+.mini{font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:20px;border:1px solid;white-space:nowrap}
+.mini.blk{background:var(--red-bg);border-color:var(--red-ln);color:#9c332b}
+.tg{position:relative;width:36px;height:20px;border-radius:20px;background:#cfd5de;transition:background .15s;flex:none;display:inline-block;vertical-align:middle;cursor:pointer}
+.tg::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.tg.on{background:var(--blue)}.tg.on::after{transform:translateX(16px)}
+.tg.dis{opacity:.3;cursor:not-allowed}
+.tg:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.na{font-size:11px;color:#a8b0bc;font-style:italic}
+.sel{padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:12.5px;min-width:170px}
+.sel:disabled{background:#f2f4f7;color:#a8b0bc}
+.sel.app{border-color:var(--purple-ln);background:var(--purple-bg);color:var(--purple);font-weight:600}
+.sel.none{border-color:var(--red-ln);background:var(--red-bg);color:#9c332b}
+/* Improved file-viewing picker: one compact control, grouped choices, no awkward
+   "or not at all" native select group. */
+.viewpicker{position:relative;display:inline-block;width:100%;min-width:190px}
+.viewtrigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;
+  font-size:12.5px;text-align:left;min-height:32px}
+.viewtrigger:hover{border-color:#b8c3d1;background:#fbfcfd}
+.viewtrigger .vttext{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewtrigger.none{border-color:var(--red-ln);background:var(--red-bg);color:#9c332b;font-weight:600}
+.viewtrigger .chev{font-size:11px;color:#7c8698;transition:transform .12s}
+.viewpicker.open .viewtrigger .chev{transform:rotate(180deg)}
+.viewmenu{position:absolute;top:calc(100% + 5px);left:0;width:330px;background:#fff;
+  border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 28px rgba(16,24,40,.16);
+  z-index:70;display:none;overflow:hidden;padding:5px}
+.viewpicker.open .viewmenu{display:block}
+.viewmenu .vgroup{font-size:9.5px;letter-spacing:.05em;color:#98a1b0;font-weight:800;padding:7px 9px 4px}
+.viewmenu .voption{display:flex;align-items:flex-start;gap:9px;width:100%;padding:8px 9px;
+  border-radius:7px;text-align:left;background:#fff}
+.viewmenu .voption:hover{background:var(--blue-bg)}
+.viewmenu .voption.selected{background:var(--blue-bg)}
+.viewmenu .voption .vmark{width:17px;flex:none;text-align:center;color:var(--blue);font-weight:800}
+.viewmenu .voption .vtitle{font-size:12.5px;font-weight:600;line-height:1.35}
+.viewmenu .voption .vdesc{font-size:10.8px;color:var(--mute);margin-top:2px;line-height:1.35}
+.viewmenu .vdivider{height:1px;background:var(--line);margin:5px 4px}
+.viewmenu .vnone .vtitle{font-weight:600}
+.viewmenu .vnone:hover{background:var(--red-bg)}
+.viewmenu .vnone.selected{background:var(--red-bg)}
+.viewmenu .vnone .vmark{color:#9c332b}
+
+.inp{padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;width:100%}
+.inp.bad{border-color:var(--red);background:#fffafa}
+.inp:focus,.sel:focus{outline:2px solid var(--blue-bg);border-color:var(--blue)}
+.btn{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600}
+.btn.pri{background:var(--blue);color:#fff}.btn.pri:hover{background:var(--blue-dk)}
+.btn.pri:disabled{opacity:.45;cursor:not-allowed}
+.btn.gho{border:1px solid var(--line);background:#fff;color:#4a5361}.btn.gho:hover{background:#f7f9fb}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.tiny{padding:3px 9px;font-size:11px;font-weight:700}
+.icb{color:#b0b8c4;font-size:14px;padding:3px 6px;border-radius:5px}
+.icb:hover{color:var(--blue);background:var(--blue-bg)}
+.icb.del:hover{color:var(--red);background:var(--red-bg)}
+.chk{width:15px;height:15px;accent-color:var(--blue);vertical-align:-2px;margin-right:6px}
+.radio{accent-color:var(--blue);margin-right:5px;vertical-align:-2px}
+label.opt{font-size:13px;margin-right:16px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center}
+.note{display:flex;gap:9px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;margin-top:10px;border:1px solid}
+.note .ni{flex:none;font-size:13px;line-height:1.35}
+.note.info{background:#f5f7fa;border-color:var(--line);color:#4a5361}
+.note.warn{background:var(--amber-bg);border-color:var(--amber-ln);color:#7a5a12}
+.note.err{background:var(--red-bg);border-color:var(--red-ln);color:#9c332b}
+.note.pol{background:var(--blue-bg);border-color:var(--blue-ln);color:#1c5aa8}
+.note b{font-weight:700}
+.pill{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid;white-space:nowrap}
+.pill.view{background:var(--blue-bg);border-color:var(--blue-ln);color:var(--blue-dk)}
+.pill.open{background:var(--purple-bg);border-color:var(--purple-ln);color:var(--purple)}
+.pill.dl{background:var(--green-bg);border-color:var(--green-ln);color:#146c40}
+.pill.block{background:var(--red-bg);border-color:var(--red-ln);color:#9c332b}
+.pill.star{background:#fff5d6;border-color:var(--amber-ln);color:#7a5a12}
+.derived{font-size:11.5px;color:var(--mute);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.empty{border:1px dashed var(--line);border-radius:10px;padding:26px 20px;text-align:center;background:#fbfcfd}
+.empty .ei{font-size:26px;margin-bottom:8px;opacity:.7}
+.empty h5{font-size:14px;font-weight:700;margin-bottom:5px}
+.empty p{font-size:12.8px;color:var(--mute);max-width:470px;margin:0 auto 14px}
+.defcard{border:1px solid var(--blue-ln);background:var(--blue-bg);border-radius:10px;padding:14px 16px;margin-top:14px}
+.defcard h5{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.defcard p{font-size:12.5px;color:#1c5aa8;margin-bottom:12px}
+.defrow{background:#fff;border:1px solid var(--blue-ln);border-radius:9px;padding:12px 14px;display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.defitem .dl2{font-weight:600;margin-bottom:5px;display:block;font-size:12.5px}
+.extbox{border:1px solid var(--line);border-radius:9px;background:#fafbfc}
+.extopt{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 10px;cursor:pointer}
+.extopt.on{background:var(--blue-bg);border-color:var(--blue-ln);color:var(--blue-dk);font-weight:600}
+.extopt input{display:none}
+.picker{position:relative;display:inline-block}
+.pmenu{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(16,24,40,.16);width:352px;z-index:60;display:none;overflow:hidden}
+.pmenu.on{display:block}
+.pmenu .plist{max-height:250px;overflow:auto;padding:6px}
+.pmenu .psearch{padding:9px 10px;border-bottom:1px solid var(--line2)}
+.pmenu .ph{font-size:10.5px;letter-spacing:.04em;color:#98a1b0;font-weight:700;padding:7px 10px 5px}
+.pmenu button.pi{display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px}
+.pmenu button.pi:hover{background:var(--blue-bg)}
+.pmenu .pl{font-weight:600;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pmenu .px{font-size:11.5px;color:var(--mute);margin-top:2px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.pmenu .pt{margin-left:auto;font-size:10px;font-weight:800;color:#98a1b0;white-space:nowrap;padding-top:2px}
+.pmenu .pfoot{border-top:1px solid var(--line);padding:6px;background:#fafbfc}
+.pmenu .pempty{padding:16px 12px;text-align:center;font-size:12.5px;color:var(--mute)}
+.ovl{position:fixed;inset:0;background:rgba(10,12,16,.55);display:none;place-items:center;z-index:80;padding:20px}
+.ovl.on{display:grid}
+.modal{background:#fff;border-radius:13px;max-width:480px;width:100%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.3);max-height:90vh;overflow:auto}
+.modal.center{text-align:center}
+.modal .mi{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font-size:23px;margin:0 auto 13px}
+.modal h4{font-size:16px;font-weight:700;margin-bottom:5px}
+.modal .msub{font-size:12.8px;color:#5b6472;margin-bottom:16px}
+.modal p{font-size:13px;color:#5b6472;margin-bottom:14px}
+.mnote{background:#f5f7fa;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:12.5px;color:#4a5361;margin-bottom:15px;text-align:left}
+.mbtns{display:flex;gap:9px;justify-content:flex-end;margin-top:4px;align-items:center}
+.fld{margin-bottom:16px}.fld>label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.fld .h{font-size:11.5px;color:var(--mute);margin-top:5px}
+.fld .h.bad{color:var(--red)}
+.viewopts{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.viewopts label{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line2)}
+.viewopts label:last-child{border-bottom:none}
+.viewopts label:hover{background:#fafbfc}
+.viewopts label.on{background:var(--blue-bg)}
+.viewopts label.off{opacity:.45;cursor:not-allowed;background:#fafbfc}
+.viewopts .d{font-size:11.5px;color:var(--mute);display:block;margin-top:2px}
+.viewopts label.on .d{color:#1c5aa8}
+.viewopts label .grow{flex:1;min-width:0}
+.viewopts label b{font-weight:600;font-size:13px}
+.viewopts .nested{display:block;margin-top:9px}
+.viewopts .nested.off{display:none}
+.viewopts .nested .sel{min-width:0}
+.single-choice{height:42px;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 13px;color:#273142;font-size:13px}
+.single-check{width:18px;height:18px;border-radius:50%;background:#2f7eea;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.viewopts .nd{margin-top:5px;font-size:11.5px}
+.viewopts label.allowrow{align-items:flex-start}
+.dlbox{border:1px solid var(--line);border-radius:9px;padding:11px 13px;display:flex;align-items:flex-start;gap:9px;font-size:13px;cursor:pointer}
+.dlbox:hover{background:#fafbfc}
+.dlbox .d{font-size:11.5px;color:var(--mute);display:block;margin-top:2px}
+.dlcheck{width:16px;height:16px;accent-color:var(--blue);cursor:pointer;margin:0}
+.dlcheck.dis{opacity:.5;cursor:not-allowed}
+.preview{background:#f5f7fa;border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:12.5px}
+.preview .pt2{font-size:10.5px;letter-spacing:.04em;font-weight:700;color:#98a1b0;margin-bottom:7px}
+.headchip{display:flex;align-items:center;gap:8px;background:#f5f7fa;border:1px solid var(--line);border-radius:8px;padding:8px 11px;margin-bottom:16px;font-size:12.8px;flex-wrap:wrap}
+.phones{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.phone{width:296px;background:var(--dark);border:9px solid #0d0f14;border-radius:30px;overflow:hidden;box-shadow:0 8px 26px rgba(0,0,0,.2)}
+.phd{padding:11px 13px;background:var(--dark2);border-bottom:1px solid var(--dark-line);color:#fff;font-size:13px;font-weight:700}
+.phb{padding:13px;display:flex;flex-direction:column;gap:11px;min-height:260px}
+.chat{background:var(--dark);border:1px solid #10131a;border-radius:12px;overflow:hidden;display:grid;grid-template-columns:196px 1fr;min-height:500px;color:var(--dark-txt)}
+@media(max-width:860px){.chat{grid-template-columns:1fr}.chat .csb{display:none}}
+.csb{background:var(--dark3);border-right:1px solid var(--dark-line);padding:12px 8px}
+.csb .ch{font-size:10.5px;color:#79808d;font-weight:700;padding:8px 8px 5px;letter-spacing:.04em}
+.csb a{display:flex;gap:7px;padding:6px 8px;border-radius:6px;color:#aab2be;font-size:12.5px;text-decoration:none}
+.csb a.on{background:#2b313c;color:#fff}
+.cmain{display:flex;flex-direction:column}
+.chd{display:flex;align-items:center;gap:10px;padding:11px 15px;border-bottom:1px solid var(--dark-line);background:var(--dark2);flex-wrap:wrap}
+.cav{width:29px;height:29px;border-radius:8px;background:var(--blue);display:grid;place-items:center;font-size:12px}
+.chd b{font-size:13.5px;color:#fff}.chd span{font-size:11px;color:#79808d;display:block}
+.cbody{padding:15px;flex:1;display:flex;flex-direction:column;gap:13px;overflow:auto}
+.msg{display:flex;gap:10px}
+.mav{width:29px;height:29px;border-radius:50%;background:#3a4150;display:grid;place-items:center;font-size:11.5px;flex:none;color:#c3c9d4}
+.mname{font-size:12.5px;font-weight:700;color:#fff;margin-bottom:5px}
+.mtime{font-size:10.5px;color:#79808d;font-weight:400;margin-left:7px}
+.bub{background:#2b313c;border-radius:9px;padding:9px 12px;font-size:12.8px;max-width:520px}
+.fcard{background:#2b313c;border:1px solid #39404d;border-radius:10px;padding:10px 11px;display:flex;align-items:center;gap:11px;max-width:470px;cursor:pointer}
+.fcard:hover{border-color:#4d5665}
+.fcard.locked{cursor:not-allowed;opacity:.72;border-style:dashed}
+.fico{width:33px;height:33px;border-radius:7px;display:grid;place-items:center;font-size:9.5px;font-weight:800;color:#fff;flex:none}
+.fcard .fi{min-width:0;flex:1}
+.fcard .fn{font-size:12.8px;font-weight:600;color:#eef1f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fcard .fs{font-size:11px;color:#8c94a1;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.actions{display:flex;gap:5px;flex:none}
+.act{width:29px;height:29px;border-radius:7px;background:#353c48;display:grid;place-items:center;font-size:12.5px;color:#c3c9d4;position:relative}
+.act:hover{background:#414958;color:#fff}
+.act.primary{background:var(--blue);color:#fff}
+.act.off{background:#2a2f39;color:#5c6472;cursor:not-allowed;border:1px dashed #414958}
+.aff{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#3a4150;color:#a9b2bf}
+.aff.p-open{background:#3b3160;color:#c4b5fd}.aff.p-view{background:#1e3a5f;color:#93c5fd}
+.aff.p-dl{background:#14472f;color:#86efac}.aff.p-block{background:#4a2320;color:#fca5a5}
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f1218;color:#e8ebf0;font-size:11.5px;padding:7px 10px;border-radius:7px;width:max-content;max-width:230px;text-align:center;opacity:0;pointer-events:none;transition:opacity .12s;z-index:50;box-shadow:0 5px 18px rgba(0,0,0,.35);border:1px solid #2b313c;line-height:1.45}
+[data-tip]:hover::after{opacity:1}
+.simbar{display:flex;align-items:center;gap:10px;background:#2b313c;padding:7px 11px;border-radius:9px;margin-left:auto;font-size:11.5px;color:#a9b2bf}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.card-h{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card-h h3{font-size:14.5px;font-weight:700}
+.card-h p{font-size:12.5px;color:var(--mute);margin-top:2px}
+.card-b{padding:16px 18px}
+.mx{width:100%;border-collapse:collapse;font-size:12.5px}
+.mx th{background:#f7f9fb;font-size:10.5px;color:#8a94a3;font-weight:700;text-align:left;padding:10px;border-bottom:1px solid var(--line)}
+.mx td{padding:9px 10px;border-bottom:1px solid var(--line2)}
+.savebar{position:sticky;bottom:0;display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fff;border-top:1px solid var(--line);box-shadow:0 -3px 12px rgba(16,24,40,.06);border-radius:0 0 12px 12px}
+.savebar .st{font-size:12.5px;color:var(--mute)}
+.savebar .st.dirty{color:#7a5a12;font-weight:600}
+.foot{font-size:12px;color:var(--mute);text-align:center;padding:18px 0}
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><div class="logo">···</div> Cliq — File Handling <span class="vtag">v15</span></div>
+    <div class="tabs" id="tabs">
+      <button data-v="admin" class="on">Conversations config</button>
+      <button data-v="desktop">Desktop</button>
+      <button data-v="mobile">Mobile</button>
+      <button data-v="states">State matrix</button>
+    </div>
+    <div class="hint">Allow or don't allow viewing — then choose where files open.</div>
+  </div>
+
+  <div class="view on" id="v-admin">
+    <div class="admin">
+      <div class="admin-head"><div class="logo" style="width:24px;height:24px;font-size:11px">···</div>
+        <div class="crumb">Admin Panel &nbsp;&rsaquo;&nbsp; Organization - <b>Configurations</b></div></div>
+      <div class="admin-body">
+        <nav class="sidenav">
+          <h4>USERS &amp; PROFILES</h4><h4>ORGANIZATION</h4>
+          <a href="#">Company Info</a><a href="#" class="on">Configurations</a><a href="#">Networks</a>
+          <a href="#">Zoho Directory</a><a href="#">Licensing</a><h4>AUTOMATION</h4><h4>PERMISSIONS</h4>
+        </nav>
+        <nav class="modules">
+          <div class="mt">Modules</div>
+          <a href="#" class="on"><span class="ic">💬</span> Conversations</a>
+          <a href="#"><span class="ic">◍</span> Status</a><a href="#"><span class="ic">🏠</span> Remote Work</a>
+          <a href="#"><span class="ic">🎥</span> Live Media</a><a href="#"><span class="ic">⏺</span> Recordings</a>
+          <a href="#"><span class="ic">📅</span> Calendar Events</a>
+        </nav>
+        <div>
+          <div class="cfg-title">Configurations &amp; Settings</div>
+          <div class="sec-head"><div class="si">💬</div><div class="grow">
+            <h3>CONVERSATIONS</h3><p>Allow your organization users to make use of chats and channels for their communications.</p></div></div>
+          <div class="block">
+            <div class="lbl" style="margin-bottom:9px">Upload Type</div>
+            <div style="margin-bottom:15px">
+              <label class="opt"><input type="checkbox" class="chk" checked> Upload from computer</label>
+              <label class="opt"><input type="checkbox" class="chk" checked> Attach from cloud</label>
+              <label class="opt"><input type="checkbox" class="chk" checked> Whiteboard</label>
+              <label class="opt"><input type="checkbox" class="chk" checked> Share from WorkDrive</label>
+            </div>
+            <div class="row" style="margin-bottom:12px">
+              <div class="bul grow">• File attachment maximum file size upload limit</div>
+              <input class="inp" type="number" value="1024" style="width:110px;text-align:right">
+              <span style="font-size:12.5px;color:var(--mute)">mb</span></div>
+            <div class="row">
+              <div class="bul">• File Extensions</div>
+              <label class="opt"><input type="radio" name="em" class="radio" value="all"> Allow All</label>
+              <label class="opt"><input type="radio" name="em" class="radio" value="allow"> Allow specific extensions</label>
+              <label class="opt"><input type="radio" name="em" class="radio" value="block"> Block specific extensions</label>
+            </div>
+            <div id="extBox" style="margin-top:11px"></div>
+            <div id="extNote"></div>
+
+            <div class="fh">
+              <div class="fh-head"><div class="si">📂</div>
+                <div class="grow"><h4>File Handling</h4>
+                  <p>Once a file is in a chat, choose how people can view it and whether they can keep a copy.</p></div></div>
+              <div class="ptabs" id="ptabs"></div>
+              <div class="fh-body">
+                <div id="scopeNote"></div>
+                <div id="platNote"></div>
+                <div id="rulesArea" style="margin-top:13px"></div>
+                <div id="ruleNotes"></div>
+              </div>
+            </div>
+          </div>
+          <div class="tgrow"><div class="lbl">Delete messages</div><span class="tg on"></span></div>
+          <div class="tgrow"><div class="lbl">Edit messages</div><span class="tg on"></span></div>
+          <div class="savebar">
+            <span class="st" id="saveState">All changes saved</span><span style="margin-left:auto"></span>
+            <button class="btn gho" id="discardBtn">CANCEL</button>
+            <button class="btn pri" id="saveBtn">SAVE</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="v-desktop">
+    <div class="card"><div class="card-h"><div class="grow"><h3>Desktop app</h3>
+      <p>Also Cliq Mini, Cliq in the Mail app, and web (web falls back where opening isn't possible).</p></div>
+      <span class="pill star" id="dtSummary"></span></div></div>
+    <div class="chat">
+      <div class="csb"><div class="ch">CHANNELS</div>
+        <a href="#" class="on"># Product Design</a><a href="#"># pm-team</a><a href="#"># development</a>
+        <div class="ch">DIRECT MESSAGES</div><a href="#">Robert</a><a href="#">Heera</a></div>
+      <div class="cmain">
+        <div class="chd"><div class="cav">#</div><div><b>Product Design</b><span>12 members</span></div>
+          <div class="simbar"><label style="cursor:pointer;display:flex;align-items:center;gap:7px">
+            <input type="checkbox" class="chk" id="simNoApp"> Simulate: device has no app for these types</label>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:7px;margin-left:18px"><input type="checkbox" class="chk" id="simConflict"> Simulate: conflicting rule on another client</label></div></div>
+        <div class="cbody">
+          <div class="msg"><div class="mav">R</div><div><div class="mname">Robert <span class="mtime">12:24 PM</span></div>
+            <div class="bub">Sharing everything before the review.</div></div></div>
+          <div class="msg"><div class="mav">H</div><div><div class="mname">Heera <span class="mtime">12:31 PM</span></div>
+            <div id="dtFiles" style="display:flex;flex-direction:column;gap:9px"></div></div></div>
+        </div></div></div>
+    <div class="card" style="margin-top:16px"><div class="card-h"><div><h3>How each file resolves</h3></div></div>
+      <div class="card-b" id="dtLogic"></div></div>
+  </div>
+
+  <div class="view" id="v-mobile">
+    <div class="card"><div class="card-h"><div><h3>Mobile apps</h3>
+      <p>Phones can't be told which app to use. Opening hands the file to the system.</p></div></div></div>
+    <div class="phones">
+      <div class="phone"><div class="phd">📱 iOS</div><div class="phb" id="iosFiles"></div></div>
+      <div class="phone"><div class="phd">🤖 Android</div><div class="phb" id="androidFiles"></div></div>
+    </div>
+  </div>
+
+  <div class="view" id="v-states">
+    <div class="card"><div class="card-h"><div><h3>Every combination</h3>
+      <p>Two controls, eight states. Clicking behaviour is derived, never configured.</p></div></div>
+      <div style="overflow:auto"><table class="mx" id="stateTable"></table></div></div>
+    <div class="card"><div class="card-h"><div><h3>When there's no default app</h3>
+      <p>The fallback ladder. Note it never falls back to download.</p></div></div>
+      <div class="card-b">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;margin-bottom:13px">
+          <span class="pill open">Configured viewing path</span><span style="color:#c3c9d4">→</span>
+          <span class="pill view">If default app is unavailable: Preview in Cliq</span><span style="color:#c3c9d4">→</span>
+          <span class="pill block">Explain that it can't be opened</span>
+        </div>
+        <div class="note" style="margin:0"><span class="ni">ℹ️</span><div><b>Fallback follows the configured viewing permission.</b>
+          If the rule allows the default-app path and no compatible app is available, Cliq uses its preview when the format is renderable. An Open in Cliq rule never falls through to the default app. Never fall back to download.</div></div>
+        <div style="overflow:auto;margin-top:14px"><table class="mx" id="fallTable"></table></div>
+      </div></div>
+  </div>
+
+  <div class="foot"></div>
+</div>
+
+<div class="ovl" id="ovl"><div class="modal" id="modal"></div></div>
+
+<script>
+const PRESETS={
+ pptx:{label:"Presentations",ext:[".ppt",".pptx",".key"],chip:"PPT",color:"#d24726",previewable:true,file:"sample_presentation.pptx",size:"4.2 MB",app:"PowerPoint"},
+ docx:{label:"Documents",ext:[".doc",".docx",".rtf"],chip:"DOC",color:"#2b5fd9",previewable:true,file:"product_spec_v4.docx",size:"820 KB",app:"Word"},
+ xlsx:{label:"Spreadsheets",ext:[".xls",".xlsx",".csv"],chip:"XLS",color:"#1d7044",previewable:true,file:"q3_metrics.xlsx",size:"1.1 MB",app:"Excel"},
+ pdf:{label:"PDF",ext:[".pdf"],chip:"PDF",color:"#c8332a",previewable:true,file:"security_review.pdf",size:"2.6 MB",app:"Acrobat"},
+ img:{label:"Images",ext:[".png",".jpg",".jpeg",".gif"],chip:"IMG",color:"#7a5fd3",previewable:true,file:"login_flow.png",size:"640 KB",app:"Photos"},
+ video:{label:"Video",ext:[".mp4",".mov",".mkv"],chip:"VID",color:"#be185d",previewable:true,file:"demo_walkthrough.mp4",size:"48 MB",app:"Video player"},
+ zip:{label:"Archives",ext:[".zip",".rar",".7z"],chip:"ZIP",color:"#6b7280",previewable:false,file:"assets_bundle.zip",size:"848 KB",app:"Archive Utility"}
+};
+/* three configurable platforms — web inherits desktop */
+const PLATS=["desktop","ios","android"];
+const PLAT={
+ desktop:{name:"Desktop app",short:"Desktop",
+   note:{k:"info",t:"<b>Web and Cliq Mini follow these settings.</b> Cliq Mini and Cliq inside the Mail app are the same desktop client. In a browser, opening in another app isn't possible, so those files fall back to preview in Cliq — or to blocked if preview is off."}},
+ ios:{name:"iOS app",short:"iOS",
+   note:{k:"info",t:"iOS can't be told which app to use. Opening shows the share sheet with whatever app the phone already has for that type."}},
+ android:{name:"Android app",short:"Android",
+   note:{k:"info",t:"Android opens the type's default app, or shows the app chooser when no default is set."}}
+};
+/* the new model: view mode + download */
+const VIEWMODES=[
+ ["cliq","Open in Cliq","Files open in Cliq's preview. The native app isn't offered."],
+ ["app","Open in the default app","Files are handed to whatever app the device uses. Cliq's preview isn't offered."],
+ ["both","Open in both — let users choose","Preview opens by default, with an option to open in the native app."]
+];
+const VM={cliq:"Open in Cliq",app:"Open in the default app",both:"Open in both",none:"Don't allow viewing"};
+const VMSHORT={cliq:"Allow · Open in Cliq",app:"Allow · Open in the default app",both:"Allow · Open in both",none:"Don't allow viewing"};
+const AL={view:"Preview in Cliq",open:"Open in default app",download:"Download"};
+const PIL={view:"view",open:"open",download:"dl",none:"block"};
+
+let rules=[];
+let fallbackRule={id:0,t:"__other",ext:[],p:{}};
+PLATS.forEach(p=>fallbackRule.p[p]={view:"both",download:true});
+let custom={}, uploadCfg={mode:"all",list:[]}, platform="desktop", nextId=1, dirty=false, pq="", simNoApp=false, simConflict=false;
+
+function T(r){return r.t==="__other"
+  ?{label:"All other files",chip:"ANY",color:"#8a94a3",previewable:true,file:"meeting_notes.txt",size:"12 KB",app:"the default app"}
+  :(PRESETS[r.t]||custom[r.t]);}
+function findRule(id){id=+id;return id===0?fallbackRule:rules.find(r=>r.id===id);}
+function markDirty(){dirty=true;renderSaveBar();}
+function renderSaveBar(){const s=document.getElementById("saveState");
+  s.textContent=dirty?"You have unsaved changes":"All changes saved";s.className="st"+(dirty?" dirty":"");}
+function allowedExt(list){const l=uploadCfg.list.map(x=>x.toLowerCase().trim());
+  if(uploadCfg.mode==="all")return list.slice();
+  if(uploadCfg.mode==="allow")return list.filter(e=>l.includes(e.toLowerCase()));
+  return list.filter(e=>!l.includes(e.toLowerCase()));}
+function claimed(ex){const m=new Map();rules.forEach(r=>{if(ex!=null&&r.id===ex)return;
+  r.ext.forEach(e=>m.set(e,T(r).label));});return m;}
+function uploadState(r){if(r.t==="__other")return{allowed:uploadCfg.mode!=="allow"||!uploadCfg.list.length,ok:[],blocked:[]};
+  const ok=allowedExt(r.ext);return{allowed:ok.length>0,ok,blocked:r.ext.filter(e=>!ok.includes(e))};}
+
+/* ---------- resolver: view mode + download → buttons + click ---------- */
+function resolve(r,plat){
+  const t=T(r),cfg=r.p[plat],flags=[],why={};
+  const u=uploadState(r);
+  let preview=(cfg.view==="cliq"||cfg.view==="both");
+  let open=(cfg.view==="app"||cfg.view==="both");
+  let download=cfg.download;
+
+  if(!u.allowed){preview=open=download=false;
+    flags.push({k:"warn",t:`Uploads are blocked for ${r.ext.join(", ")} under <b>File Extensions</b> above, so there is nothing to configure. Files shared before the restriction stay locked.`});}
+
+  if(cfg.view==="none"){why.view="Viewing is turned off by your admin";why.open="Viewing is turned off by your admin";}
+  if(cfg.view==="cliq")why.open="Your admin opens these files in Cliq only";
+  if(cfg.view==="app")why.view="Your admin opens these files in the device's app";
+  if(!download)why.download="Downloads are turned off by your admin";
+
+  if(preview&&!t.previewable){preview=false;why.view="Cliq can't preview this file type";
+    if(cfg.view==="cliq")flags.push({k:"warn",t:`Cliq can't preview ${t.ext[0]} files, so <b>Open in Cliq</b> leaves nothing to view. Choose the default app instead, or allow download.`});}
+
+  const avail=[];if(preview)avail.push("view");if(open)avail.push("open");if(download)avail.push("download");
+  /* click is DERIVED, never configured */
+  const click=preview?"view":(open?"open":(download?"download":"none"));
+  if(open&&!download)flags.push({k:"info",t:"Opening writes a temporary copy outside the Downloads folder, cleared when Cliq closes."});
+  if(u.allowed&&!avail.length)flags.push({k:"err",t:"Nothing is allowed — people see the file name but can't open or keep it."});
+  return{preview,open,download,click,avail,flags,why,uploadBlocked:!u.allowed,
+    fallbackToPreview:(cfg.view==="app"||cfg.view==="both")&&t.previewable};
+}
+
+/* ---------- shell ---------- */
+function renderPTabs(){document.getElementById("ptabs").innerHTML=
+  PLATS.map(p=>`<button data-p="${p}" class="${p===platform?"on":""}">${PLAT[p].name}</button>`).join("");}
+document.getElementById("ptabs").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-p]");if(!b)return;platform=b.dataset.p;renderAll();});
+function renderScope(){document.getElementById("scopeNote").innerHTML=
+  `<div class="scope"><span>⚙️</span><div>You're viewing the <b>${PLAT[platform].name}</b>.
+   Changes here apply to this client only — use the rule dialog to apply to all clients at once. Rules also apply to files shared before the rule was created or changed, wherever those files remain accessible. This includes previously shared files in the conversation.</div></div>`;}
+function renderPlatNote(){const n=PLAT[platform].note;
+  document.getElementById("platNote").innerHTML=n
+    ?`<div class="note ${n.k}"><span class="ni">${n.k==="warn"?"⚠️":"ℹ️"}</span><div>${n.t}</div></div>`:"";}
+
+/* ---------- rules ---------- */
+function viewSelect(r,lock){
+  const cfg=r.p[platform],t=T(r);
+  if(lock)return `<select class="sel" disabled><option>Uploads blocked</option></select>`;
+  const labels={
+    cliq:["Open in Cliq","Files open in Cliq's preview. The native app isn't offered."],
+    app:["Open in the default app",""],
+    both:["Open in both — let users choose","Preview opens first, with an option to use the native app."],
+    none:["Don't allow viewing","People can't open these files in this app."]
+  };
+  const [label]=labels[cfg.view]||labels.none;
+  const isNone=cfg.view==="none";
+  return `<div class="viewpicker" data-id="${r.id}">
+    <button type="button" class="viewtrigger ${isNone?"none":""}" aria-haspopup="listbox" aria-expanded="false">
+      <span class="vttext">${label}</span><span class="chev">⌄</span>
+    </button>
+    <div class="viewmenu" role="listbox">
+      <div class="vgroup">ALLOW VIEWING</div>
+      ${VIEWMODES.filter(([v])=>t.previewable || v==="app").map(([v,l,d])=>{
+        return `<button type="button" class="voption ${cfg.view===v?"selected":""}" data-view="${v}">
+          <span class="vmark">${cfg.view===v?"✓":""}</span>
+          <span class="vtitle">${l}</span>
+        </button>`;
+      }).join("")}
+      <div class="vdivider"></div>
+      <div class="vgroup">NO VIEWING</div>
+      <button type="button" class="voption vnone ${isNone?"selected":""}" data-view="none">
+        <span class="vmark">${isNone?"✓":"⊘"}</span>
+        <span class="vtitle">Don't allow viewing</span>
+      </button>
+    </div>
+  </div>`;}
+
+function ruleRow(r,isFb){
+  const t=T(r),u=uploadState(r),lock=!u.allowed,isC=!!custom[r.t],R=resolve(r,platform);
+  const exts=u.ok.length?u.ok.join(" "):r.ext.join(" ");
+  return `<tr class="${lock?"dis":""} ${isFb?"fb":""}">
+   <td style="width:25%"><div class="ftype"><span class="fchip" style="background:${t.color}">${t.chip||"CUSTOM"}</span>
+    <div><div class="fname">${t.label}
+      ${lock?`<span class="mini blk">uploads blocked</span>`:""}</div>
+    ${isFb?`<div class="fmeta plain">Anything without its own rule</div>`:`<div class="fmeta">${exts}</div>`}</div></div></td>
+   <td style="width:26%">${viewSelect(r,lock)}</td>
+   <td class="c" style="width:12%">${lock?`<input type="checkbox" class="dlcheck dis" disabled>`
+     :`<input type="checkbox" class="dlcheck" data-id="${r.id}" ${r.p[platform].download?"checked":""} aria-label="Allow download">`}</td>
+   <td style="white-space:nowrap;width:60px">
+     ${isFb?"":`<button class="icb" data-edit="${r.id}" title="Edit rule">✎</button><button class="icb del" data-del="${r.id}" title="Remove rule">✕</button>`}
+     ${lock&&!isFb?`<br><button class="btn tiny gho" data-allow="${r.id}">Allow upload</button>`:""}</td></tr>`;}
+function renderRules(){
+  const area=document.getElementById("rulesArea");
+  const visibleRules=rules.filter(r=>!!r.p[platform]);
+  const head=`<div class="row" style="margin-bottom:6px">
+      <div class="grow"><div class="lbl">Rules by file type</div>
+        <div class="sub">${visibleRules.length?`${visibleRules.length} rule${visibleRules.length>1?"s":""} · each extension belongs to one rule`:"No rules yet."}</div></div>
+      <div class="picker"><button class="btn gho sm" id="addBtn">+ Add rule</button><div class="pmenu" id="pmenu"></div></div></div>`;
+  const thead=`<thead><tr><th>File type</th><th>File viewing</th><th class="c">Download</th>
+      <th></th></tr></thead>`;
+  let body;
+  if(visibleRules.length){
+    body=`<table class="rules">${thead}<tbody>${visibleRules.map(r=>ruleRow(r,false)).join("")}${ruleRow(fallbackRule,true)}</tbody></table>`;
+  }else{
+    const R=resolve(fallbackRule,platform);
+    body=`<div class="empty"><div class="ei">📂</div><h5>No file type rules yet</h5>
+      <p>Right now every file behaves the same way. Add a rule when one type needs different treatment —
+         for example opening presentations in the device's app instead of previewing them in Cliq.</p>
+      <button class="btn pri" id="addBtnEmpty">+ Add your first rule</button></div>
+      <div class="defcard"><h5><span class="fchip" style="background:#8a94a3">ANY</span> What happens today — every file, no exceptions</h5>
+        <p>Until you add a rule, this covers every file people share on the ${PLAT[platform].name}.</p>
+        <div class="defrow">
+          <div class="defitem"><span class="dl2">File viewing</span>${viewSelect(fallbackRule,false)}</div>
+          <div class="defitem"><span class="dl2">Download</span>
+            <input type="checkbox" class="dlcheck" data-id="0" ${fallbackRule.p[platform].download?"checked":""} aria-label="Allow download"></div>
+        </div></div>`;}
+  area.innerHTML=head+body;
+  bindPicker();
+  const eb=document.getElementById("addBtnEmpty");
+  if(eb)eb.onclick=ev=>{ev.stopPropagation();openPicker();};
+  const notes=[],seen=new Set();
+  [...visibleRules,fallbackRule].forEach(r=>resolve(r,platform).flags.forEach(f=>{
+    const k=T(r).label+f.t;if(!seen.has(k)){seen.add(k);notes.push({...f,who:T(r).label});}}));
+  document.getElementById("ruleNotes").innerHTML=notes.map(n=>
+    `<div class="note ${n.k}"><span class="ni">${n.k==="err"?"⛔":n.k==="warn"?"⚠️":"ℹ️"}</span><div><b>${n.who}:</b> ${n.t}</div></div>`).join("");}
+function renderAll(){renderPTabs();renderScope();renderPlatNote();renderRules();renderProduct();renderStates();}
+
+document.getElementById("rulesArea").addEventListener("click",e=>{
+  const tg=e.target.closest(".tg:not(.dis)"),del=e.target.closest("[data-del]"),
+        al=e.target.closest("[data-allow]"),ed=e.target.closest("[data-edit]");
+  if(tg){const r=findRule(tg.dataset.id);r.p[platform].download=!r.p[platform].download;markDirty();renderAll();return;}
+  if(del)return confirmDelete(findRule(del.dataset.del));
+  if(al){const r=findRule(al.dataset.allow);
+    if(uploadCfg.mode==="allow")uploadCfg.list=[...new Set([...uploadCfg.list,...r.ext])];
+    else uploadCfg.list=uploadCfg.list.filter(x=>!r.ext.includes(x));
+    syncUploadUI();markDirty();renderAll();toast(`${T(r).label} can now be uploaded.`);return;}
+  if(ed){const r=findRule(ed.dataset.edit);custom[r.t]?customModal(r):actionsModal(r.t,r);}});
+document.getElementById("rulesArea").addEventListener("keydown",e=>{
+  const tg=e.target.closest(".tg:not(.dis)");if(tg&&(e.key===" "||e.key==="Enter")){e.preventDefault();tg.click();}});
+document.getElementById("rulesArea").addEventListener("click",e=>{
+  const trigger=e.target.closest(".viewtrigger");
+  if(trigger){
+    const picker=trigger.closest(".viewpicker");
+    document.querySelectorAll(".viewpicker.open").forEach(p=>{if(p!==picker)p.classList.remove("open");});
+    picker.classList.toggle("open");
+    trigger.setAttribute("aria-expanded",picker.classList.contains("open"));
+    e.stopPropagation();return;
+  }
+  const option=e.target.closest(".voption[data-view]");
+  if(option && !option.disabled){
+    const picker=option.closest(".viewpicker");
+    const r=findRule(picker.dataset.id);
+    r.p[platform].view=option.dataset.view;
+    markDirty();renderAll();e.stopPropagation();return;
+  }
+});
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".viewpicker"))document.querySelectorAll(".viewpicker.open").forEach(p=>p.classList.remove("open"));
+});
+document.getElementById("saveBtn").onclick=()=>{dirty=false;renderSaveBar();toast("Configuration saved.");};
+document.getElementById("discardBtn").onclick=()=>{dirty=false;renderSaveBar();toast("Changes discarded.");};
+
+/* ---------- picker ---------- */
+function addableExt(key){const c=claimed(null);
+  return allowedExt((PRESETS[key]||custom[key]).ext).filter(e=>!c.has(e));}
+function bindPicker(){const b=document.getElementById("addBtn");if(!b)return;
+  b.onclick=ev=>{ev.stopPropagation();const m=document.getElementById("pmenu");
+    if(m.classList.contains("on")){m.classList.remove("on");return;}openPicker();};}
+function openPicker(){pq="";renderPicker();document.getElementById("pmenu").classList.add("on");
+  const s=document.getElementById("psearch");if(s)s.focus();}
+function renderPicker(){
+  const items=[...Object.entries(PRESETS),...Object.entries(custom)].map(([k,t])=>[k,t,addableExt(k)])
+    .filter(([,t,ok])=>ok.length>0&&(!pq||t.label.toLowerCase().includes(pq)||ok.some(e=>e.includes(pq))));
+  document.getElementById("pmenu").innerHTML=`
+    <div class="psearch"><input class="inp" id="psearch" placeholder="Search a type or extension…" value="${pq}"></div>
+    <div class="plist">${items.length?`<div class="ph">FILE TYPES</div>`+items.map(([k,t,ok])=>`
+      <button class="pi" data-add="${k}"><div class="grow">
+        <div class="pl"><span class="fchip" style="background:${t.color}">${t.chip}</span>${t.label}</div>
+        <div class="px">${ok.join("  ")}</div></div><span class="pt">${ok.length} EXT</span></button>`).join("")
+      :`<div class="pempty">${pq?"Nothing matches that search.":"Every available file type already has a rule."}</div>`}</div>
+    <div class="pfoot"><button class="pi" data-add="__custom" style="width:100%">
+      <div class="grow"><div class="pl"><span class="fchip" style="background:var(--purple)">+</span>Custom rule…</div>
+      <div class="px" style="font-family:inherit">Name your own group of extensions</div></div></button></div>`;
+  const s=document.getElementById("psearch");
+  s.oninput=()=>{const v=s.value;pq=v.toLowerCase().trim();renderPicker();
+    const n=document.getElementById("psearch");n.focus();n.setSelectionRange(v.length,v.length);};
+  s.onclick=ev=>ev.stopPropagation();}
+document.addEventListener("click",e=>{const m=document.getElementById("pmenu");
+  if(m&&!e.target.closest(".picker")&&!e.target.closest("#addBtnEmpty"))m.classList.remove("on");});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(!b)return;
+  document.getElementById("pmenu").classList.remove("on");
+  if(b.dataset.add==="__custom")return customModal();
+  actionsModal(b.dataset.add);});
+
+/* ---------- rule dialog: Viewing + Download only ---------- */
+function showClientConflict(conflicts,r,cfg,onConfirm,onCancel){
+  const m=document.getElementById("modal");m.className="modal";
+  const rows=conflicts.map(p=>{
+    const old=r.p[p]||{view:"none",download:false};
+    return `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line2)">
+      <b>${PLAT[p].name}</b><span style="color:var(--mute)">${VM[old.view]||old.view} · Download ${old.download?"allowed":"not allowed"}</span></div>`;
+  }).join("");
+  m.innerHTML=`<div style="font-size:12px;color:#a33;font-weight:700;margin-bottom:4px">CONFLICT DETECTED</div>
+    <h4>Different settings exist on another client</h4>
+    <p>This file type already has a different File Handling rule on another client. Applying to all clients will replace those settings.</p>
+    <div style="margin:12px 0;border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:#fafbfc">${rows}</div>
+    <p style="margin-bottom:0"><b>Keep current client only</b> preserves the other client's rule. <b>Replace on all clients</b> makes the setting identical everywhere.</p>
+    <div class="mbtns"><button class="btn gho" id="confCancel">Keep current client only</button><button class="btn pri" id="confYes">Replace on all clients</button></div>`;
+  document.getElementById("confCancel").onclick=()=>onCancel();
+  document.getElementById("confYes").onclick=()=>{m.className="modal";onConfirm();};
+  document.getElementById("ovl").classList.add("on");
+}
+function applyRuleAcrossClients(r,cfg,all,existing,key,exts){
+  if(all){
+    PLATS.forEach(p=>r.p[p]={...cfg});
+  }else if(existing){
+    r.p[platform]={...cfg};
+  }else{
+    r.p[platform]={...cfg};
+  }
+  if(!existing)rules.push(r);
+  document.getElementById("ovl").classList.remove("on");markDirty();renderAll();
+  toast(all?"Saved for all clients.":`Saved for the ${PLAT[platform].name} only.`);
+}
+function actionsModal(key,existing){
+  const t=PRESETS[key]||custom[key],isEdit=!!existing;
+  const exts=existing?allowedExt(existing.ext):addableExt(key);
+  const cur=existing?{...existing.p[platform]}:{view:t.previewable?"cliq":"app",download:true};
+  /* remembers the last "allow" choice so toggling the radio doesn't lose it */
+  let lastAllow=cur.view!=="none"?cur.view:(t.previewable?"cliq":"app");
+  if(!t.previewable && (lastAllow==="cliq"||lastAllow==="both")) lastAllow="app";
+  const m=document.getElementById("modal");m.className="modal";
+  m.innerHTML=`<h4>${isEdit?"Edit":"Add"} rule — ${t.label}</h4>
+    <div class="msub">Choose whether people can view these files and where they can open them.</div>
+    <div class="headchip"><span class="fchip" style="background:${t.color}">${t.chip}</span>
+      <span style="font-family:ui-monospace,Menlo,monospace">${exts.join("  ")}</span></div>
+
+    <div class="fld"><label>File viewing</label>
+      <div class="viewopts">
+        <label class="allowrow ${cur.view!=="none"?"on":""}" id="rAllowWrap">
+          <input type="radio" name="vAllow" class="radio" value="allow" ${cur.view!=="none"?"checked":""}>
+          <span class="grow"><b>Allow viewing</b>
+            <span class="d">People can open these files. Choose where they can open them.</span>
+            <span class="nested" id="nested">
+              ${t.previewable
+                ? `<select class="sel" id="vWhere" style="width:100%;min-width:0">
+                    ${VIEWMODES.map(([v,l])=>`<option value="${v}"${lastAllow===v?" selected":""}>${l}</option>`).join("")}
+                  </select>`
+                : `<div class="single-choice" id="vWhereSingle">
+                    <span class="single-check">✓</span>
+                    <span>Open in the default app</span>
+                  </div>
+                  <input type="hidden" id="vWhere" value="app">`}
+              <span class="d nd" id="vWhereHint"></span><span class="d" id="vFallbackNote" style="margin-top:5px"></span>
+            </span></span></label>
+        <label class="${cur.view==="none"?"on":""}">
+          <input type="radio" name="vAllow" class="radio" value="none" ${cur.view==="none"?"checked":""}>
+          <span><b>Don't allow viewing</b><span class="d">People can't open these files at all in this app.</span></span></label>
+      </div></div>
+
+    <div class="fld"><label>File download</label>
+      <label class="dlbox"><input type="checkbox" class="chk" id="aDown" ${cur.download?"checked":""}>
+        <span>Allow people to download these files<span class="d">Saves a copy the person keeps. Independent of viewing.</span></span></label>
+      </div>
+
+    <div class="mbtns" style="justify-content:space-between">
+      <label style="font-weight:500;display:flex;gap:8px;align-items:center;cursor:pointer;font-size:12.5px">
+        <input type="checkbox" class="chk" id="aAll" checked style="margin:0">
+        <span>Apply to all clients</span></label>
+      <span style="display:flex;gap:9px">
+        <button class="btn gho" data-close>Cancel</button>
+        <button class="btn pri" id="aSave">${isEdit?"Save rule":"Add rule"}</button></span></div>
+
+`;
+  document.getElementById("ovl").classList.add("on");
+
+  const draw=()=>{
+    const allowed=document.querySelector('input[name="vAllow"]:checked').value==="allow";
+    if(allowed)lastAllow=document.getElementById("vWhere").value;
+    if(allowed && !t.previewable && (lastAllow==="cliq"||lastAllow==="both")) lastAllow="app";
+    cur.view=allowed?lastAllow:"none";
+    cur.download=document.getElementById("aDown").checked;
+    document.getElementById("vFallbackNote").textContent=(allowed && (lastAllow==="app"||lastAllow==="both") && t.previewable)
+      ? "If the default app doesn't exist, the file will open within Cliq under this rule configuration."
+      : "";
+
+    /* highlight the chosen row and enable / disable the nested control */
+    document.querySelectorAll(".viewopts label").forEach(l=>{
+      const r=l.querySelector('input[name="vAllow"]');
+      if(r)l.classList.toggle("on",r.checked);});
+    const nested=document.getElementById("nested");
+    nested.classList.toggle("off",!allowed);
+    document.getElementById("vWhere").disabled=!allowed;
+    document.getElementById("vWhereHint").textContent=allowed
+      ? (VIEWMODES.find(v=>v[0]===lastAllow)||[])[2]||"" : "";
+
+    const fake={id:-1,t:key,ext:exts.slice(),p:{}};PLATS.forEach(p=>fake.p[p]={...cur});
+    const R=resolve(fake,platform);};
+
+  document.querySelectorAll('input[name="vAllow"]').forEach(i=>i.onchange=draw);
+  document.getElementById("vWhere").onchange=draw;
+  document.getElementById("vWhere").onclick=e=>e.stopPropagation();
+  document.getElementById("aDown").onchange=draw;
+  draw();
+
+  document.getElementById("aSave").onclick=()=>{
+    const cfg={view:cur.view,download:document.getElementById("aDown").checked};
+    const all=document.getElementById("aAll").checked;
+    const r=existing||{id:nextId++,t:key,ext:exts.slice(),p:{}};
+    if(all){
+      let conflicts=PLATS.filter(p=>p!==platform && r.p[p] && (r.p[p].view!==cfg.view || r.p[p].download!==cfg.download));
+      if(simConflict && !conflicts.length) conflicts=[PLATS.find(p=>p!==platform)];
+      if(conflicts.length){
+        if(simConflict && !r.p[conflicts[0]]) r.p[conflicts[0]]={view:cfg.view==="app"?"cliq":"app",download:!cfg.download};
+        showClientConflict(conflicts,r,cfg,()=>applyRuleAcrossClients(r,cfg,all,existing,key,exts),()=>applyRuleAcrossClients(r,cfg,false,existing,key,exts));
+        return;
+      }
+    }
+    applyRuleAcrossClients(r,cfg,all,existing,key,exts);};}
+
+/* ---------- custom rule ---------- */
+const CUSTOM_NO_PREVIEW=new Set([".zip",".rar",".7z",".dwg",".dxf",".step"]);
+function customSupportsPreview(exts){return exts.every(e=>!CUSTOM_NO_PREVIEW.has(e));}
+function customModal(existing){
+  const ex=existing?custom[existing.t]:null,c=claimed(existing?existing.id:null);
+  const m=document.getElementById("modal");m.className="modal";
+  const available=uploadCfg.list.filter(e=>!c.has(e));
+  let selected=new Set(existing?existing.ext:[]),q="";
+  const initialView=existing?existing.p[platform].view:(customSupportsPreview(existing?existing.ext:[])?"cliq":"app");
+  const initialDownload=existing?existing.p[platform].download:true;
+  m.innerHTML=`<h4>${ex?"Edit":"New"} custom rule</h4>
+    <div class="msub">Group any extensions under a name your admins will recognise.</div>
+    <div class="fld"><label>Rule name</label><input class="inp" id="cName" placeholder="e.g. CAD drawings" value="${ex?ex.label:""}"></div>
+    <div class="fld"><label>Allowed formats</label>
+      <input class="inp" id="cExt" placeholder="Enter extensions, e.g. .dwg, .dxf, .step" value="${existing?existing.ext.join(", "):""}">
+      <div class="h" id="cHint">Enter custom extensions or pick from the available formats below.</div>
+      ${available.length?`<div style="margin-top:9px;font-size:11px;color:var(--mute)">Available formats</div>
+      <div id="cList" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:105px;overflow:auto">
+        ${available.map(e=>`<button type="button" class="extopt ${selected.has(e)?"on":""}" data-ext="${e}">${e}</button>`).join("")}
+      </div>`:""}
+    </div>
+    <div class="fld"><label>File viewing</label>
+      <div class="viewopts">
+        <label class="allowrow ${initialView!=="none"?"on":""}"><input type="radio" name="cvAllow" class="radio" value="allow" ${initialView!=="none"?"checked":""}>
+          <span class="grow"><b>Allow viewing</b>
+            <span class="nested"><select class="sel" id="cvWhere" style="width:100%;min-width:0">
+              ${VIEWMODES.map(([v,l])=>{const dis=(v==="cliq"||v==="both")&&!customSupportsPreview(existing?existing.ext:[]);return `<option value="${v}"${(initialView!=="none"?initialView:"cliq")===v?" selected":""}${dis?" disabled":""}>${l}${dis?" — not supported":""}</option>`;}).join("")}
+            </select><span class="d" id="cFallbackNote" style="margin-top:5px"></span></span></span></label>
+        <label class="${initialView==="none"?"on":""}"><input type="radio" name="cvAllow" class="radio" value="none" ${initialView==="none"?"checked":""}>
+          <span><b>Don't allow viewing</b></span></label>
+      </div></div>
+    <div class="fld"><label>File download</label>
+      <label class="dlbox"><input type="checkbox" class="chk" id="cDown" ${initialDownload?"checked":""}>
+        <span>Allow people to download these files<span class="d">Saves a copy the person keeps. Independent of viewing.</span></span></label>
+      </div>
+    <div class="mbtns" style="justify-content:space-between">
+      <label style="font-weight:500;display:flex;gap:8px;align-items:center;cursor:pointer;font-size:12.5px">
+        <input type="checkbox" class="chk" id="cAll" checked style="margin:0"><span>Apply to all clients</span></label>
+      <span style="display:flex;gap:9px"><button class="btn gho" data-close>Cancel</button>
+      <button class="btn pri" id="cSave">${ex?"Save rule":"Add rule"}</button></span></div>
+`;
+  document.getElementById("ovl").classList.add("on");
+
+  const parse=()=>document.getElementById("cExt").value.split(",").map(s=>s.trim()).filter(Boolean)
+    .map(s=>s.startsWith(".")?s.toLowerCase():"."+s.toLowerCase());
+  const sync=()=>{
+    document.querySelectorAll("[data-ext]").forEach(b=>b.classList.toggle("on",selected.has(b.dataset.ext)));
+    const typed=[...new Set([...selected,...parse()])];
+    const supports=customSupportsPreview(typed);
+    const where=document.getElementById("cvWhere");
+    [...where.options].forEach(o=>{o.disabled=o.value==="cliq"&&!supports || o.value==="both"&&!supports;});
+    if(!supports && (where.value==="cliq"||where.value==="both"))where.value="app";
+    document.getElementById("cHint").textContent=typed.length?`${typed.length} custom extension${typed.length>1?"s":""} entered. ${supports?"Cliq preview is available for these types.":"Cliq preview is not supported for at least one selected type; only the default-app path can be used."}`:"Enter custom extensions or pick from the available formats below.";
+    const allow=document.querySelector('input[name="cvAllow"]:checked')?.value!=="none";
+    const view=allow?where.value:"none",down=document.getElementById("cDown").checked;
+    document.getElementById("cFallbackNote").textContent=(allow && (view==="app"||view==="both") && supports)
+      ? "If the default app doesn't exist, the file will open within Cliq under this rule configuration."
+      : "";
+  };
+  m.querySelectorAll("[data-ext]").forEach(b=>b.onclick=()=>{selected.has(b.dataset.ext)?selected.delete(b.dataset.ext):selected.add(b.dataset.ext);sync();});
+  document.getElementById("cExt").oninput=sync;sync();
+
+  document.getElementById("cSave").onclick=()=>{
+    const n=document.getElementById("cName").value.trim();
+    const exts=[...new Set([...selected,...parse()])];
+    const dupes=exts.filter(e=>c.has(e));
+    if(!n||!exts.length)return toast("Add a name and at least one format.");
+    if(dupes.length)return toast(`${dupes.join(", ")} is already covered by another rule.`);
+    const view=document.querySelector('input[name="cvAllow"]:checked').value==="none"?"none":document.getElementById("cvWhere").value;
+    const cfg={view,download:document.getElementById("cDown").checked};
+    const all=document.getElementById("cAll").checked;
+    const key=existing?existing.t:"c"+nextId;
+    custom[key]={label:n,ext:exts,chip:"",color:"#5b3fc4",previewable:customSupportsPreview(exts),file:"example"+exts[0],size:"1.4 MB",app:"the default app"};
+    const r=existing||{id:nextId++,t:key,ext:exts.slice(),p:{}};
+    r.ext=exts.slice();
+    if(all){
+      let conflicts=PLATS.filter(p=>p!==platform && r.p[p] && (r.p[p].view!==cfg.view || r.p[p].download!==cfg.download));
+      if(simConflict && !conflicts.length) conflicts=[PLATS.find(p=>p!==platform)];
+      if(conflicts.length){
+        if(simConflict && !r.p[conflicts[0]]) r.p[conflicts[0]]={view:cfg.view==="app"?"cliq":"app",download:!cfg.download};
+        showClientConflict(conflicts,r,cfg,()=>applyRuleAcrossClients(r,cfg,all,existing,key,exts),()=>applyRuleAcrossClients(r,cfg,false,existing,key,exts));
+        return;
+      }
+    }
+    applyRuleAcrossClients(r,cfg,all,existing,key,exts);
+  };
+}
+
+function confirmDelete(r){
+  const t=T(r);const m=document.getElementById("modal");m.className="modal";
+  m.innerHTML=`<h4>Remove the ${t.label} rule?</h4>
+    <p>${r.ext.join(", ")} will fall back to <b>All other files</b> on every client. Settings for all clients are removed.</p>
+    <div class="mbtns"><button class="btn gho" data-close>Keep rule</button>
+      <button class="btn pri" id="dYes" style="background:var(--red)">Remove rule</button></div>`;
+  document.getElementById("ovl").classList.add("on");
+  document.getElementById("dYes").onclick=()=>{rules=rules.filter(x=>x.id!==r.id);
+    document.getElementById("ovl").classList.remove("on");markDirty();renderAll();toast("Rule removed.");};}
+
+/* ---------- upload extensions ---------- */
+function syncUploadUI(){
+  document.querySelectorAll('input[name="em"]').forEach(i=>i.checked=i.value===uploadCfg.mode);
+  const box=document.getElementById("extBox");
+  box.innerHTML=uploadCfg.mode==="all"?"":
+    `<div class="row"><div class="bul" style="min-width:230px"></div>
+      <input class="inp" id="extList" style="max-width:400px" value="${uploadCfg.list.join(", ")}"
+       placeholder="${uploadCfg.mode==="allow"?"Enter allowed extensions (eg: .pdf, .docx)":"Enter blocked extensions (eg: .exe, .zip)"}">
+      <button class="btn gho sm" id="extApply">Apply</button></div>`;
+  if(uploadCfg.mode!=="all")document.getElementById("extApply").onclick=()=>{
+    uploadCfg.list=document.getElementById("extList").value.split(",").map(s=>s.trim()).filter(Boolean)
+      .map(s=>s.startsWith(".")?s.toLowerCase():"."+s.toLowerCase());
+    syncUploadUI();markDirty();renderAll();toast("File extension rules updated.");};
+  const lock=rules.filter(r=>!uploadState(r).allowed).map(r=>T(r).label);
+  document.getElementById("extNote").innerHTML=lock.length
+    ?`<div class="note warn"><span class="ni">⚠️</span><div><b>${lock.length} rule${lock.length>1?"s are":" is"} now locked:</b> ${lock.join(", ")}.</div></div>`:"";}
+document.querySelectorAll('input[name="em"]').forEach(i=>i.addEventListener("change",e=>{
+  uploadCfg.mode=e.target.value;syncUploadUI();markDirty();renderAll();}));
+
+/* ---------- product ---------- */
+document.getElementById("simNoApp").onchange=e=>{simNoApp=e.target.checked;renderProduct();};
+document.getElementById("simConflict").onchange=e=>{simConflict=e.target.checked;};
+function fileCard(r,plat,compact){
+  const t=T(r),R=resolve(r,plat),blocked=!R.avail.length;
+  const aff={view:"p-view",open:"p-open",download:"p-dl",none:"p-block"}[R.click];
+  const affTxt=blocked?"Blocked by admin"
+    :R.click==="open"?`Opens in ${t.app}`:R.click==="view"?"Opens preview":"Downloads";
+  const acts=[{k:"view",i:"👁",on:R.preview},{k:"open",i:"↗",on:R.open},{k:"download",i:"⭳",on:R.download}]
+    .map(a=>a.on?`<button class="act ${a.k===R.click?"primary":""}" data-act="${a.k}" data-id="${r.id}" data-p="${plat}" data-tip="${AL[a.k]}">${a.i}</button>`
+      :`<button class="act off" data-act="blocked" data-tip="${R.why[a.k]||"Turned off by your admin"}">${a.i}</button>`).join("");
+  return `<div class="fcard ${blocked?"locked":""}" data-id="${r.id}" data-p="${plat}">
+    <div class="fico" style="background:${t.color}">${t.chip}</div>
+    <div class="fi"><div class="fn">${blocked?"🔒 ":""}${t.file}</div>
+      <div class="fs"><span>${t.size}</span>${compact?"":`<span class="aff ${aff}">${affTxt}</span>`}</div></div>
+    <div class="actions">${acts}</div></div>`;}
+function renderProduct(){
+  const desktopList=[...rules.filter(r=>!!r.p.desktop),fallbackRule];
+  const iosList=[...rules.filter(r=>!!r.p.ios),fallbackRule];
+  const androidList=[...rules.filter(r=>!!r.p.android),fallbackRule];
+  document.getElementById("dtFiles").innerHTML=desktopList.map(r=>fileCard(r,"desktop")).join("");
+  document.getElementById("iosFiles").innerHTML=iosList.slice(0,4).map(r=>fileCard(r,"ios",true)).join("");
+  document.getElementById("androidFiles").innerHTML=androidList.slice(0,4).map(r=>fileCard(r,"android",true)).join("");
+  document.getElementById("dtSummary").textContent=`${rules.length} rule${rules.length===1?"":"s"}${simNoApp?" · simulating no default app":""}${simConflict?" · simulating client conflict":""}`;
+  document.getElementById("dtLogic").innerHTML=desktopList.map(r=>{
+    const t=T(r),R=resolve(r,"desktop"),cfg=r.p.desktop;
+    return `<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line2)">
+      <span class="fchip" style="background:${t.color}">${t.chip}</span><b style="min-width:125px">${t.label}</b>
+      <span class="pill star">Viewing: ${VMSHORT[cfg.view]}</span>
+      <span class="pill ${cfg.download?"dl":"block"}">Download: ${cfg.download?"on":"off"}</span>
+      <span style="color:#c3c9d4">→</span>
+      ${R.avail.length?R.avail.map(a=>`<span class="pill ${PIL[a]}">${AL[a]}</span>`).join(" "):`<span class="pill block">No access</span>`}
+      <span style="color:var(--mute);margin-left:auto">click → <b>${R.click==="none"?"nothing":AL[R.click]}</b></span></div>`;}).join("");}
+document.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-act]"),card=e.target.closest(".fcard");
+  if(btn){e.stopPropagation();if(btn.dataset.act==="blocked")return;return doAction(btn.dataset.act,btn.dataset.id,btn.dataset.p);}
+  if(card){const r=findRule(card.dataset.id);doAction(resolve(r,card.dataset.p).click,card.dataset.id,card.dataset.p);}});
+function doAction(act,id,plat){
+  const r=findRule(id),t=T(r),R=resolve(r,plat);
+  if(act==="none"||!R.avail.length)return modal("🔒","var(--red-bg)","Can't open this file",
+    R.uploadBlocked?"This file type is blocked in your organisation.":"Your organisation doesn't allow this file type to be viewed or downloaded.",
+    `<b>Note:</b> ${(r.ext.length?r.ext:["these"]).join(", ")} files are restricted by your admin.`);
+  if(act==="view")return modal("👁","var(--blue-bg)",`Preview — ${t.file}`,"The file opens inside Cliq. Nothing is saved to the device.",
+    R.open?`<b>Also available:</b> open in ${t.app} from the preview toolbar.`:"");
+  if(act==="open"){
+    /* the fallback ladder */
+    if(simNoApp){
+      if(R.fallbackToPreview)
+        return modal("↪","var(--amber-bg)","No app for this file",
+          `This device has no app that opens ${t.ext?t.ext[0]:"this type"}. Cliq will show its own preview instead because the rule allows the default-app path.`,
+          `<b>Note:</b> we never fall back to downloading — your admin has that set separately.`,
+          [{t:"View in Cliq",p:true,act:()=>doAction("view",id,plat)},{t:"Cancel"}]);
+      return modal("⛔","var(--red-bg)","Can't open this file",
+        `This device has no app that opens ${t.ext?t.ext[0]:"this type"}, and Cliq can't preview it either.`,
+        R.download?`<b>You can still download it</b> and open it elsewhere.`:`<b>Downloads are turned off</b> for this file type, so there's nothing else to try.`);}
+    if(plat==="ios")return modal("📤","var(--purple-bg)","Share sheet",`iOS decides which app handles ${t.ext?t.ext[0]:"this type"}.`,`<b>Suggested:</b> ${t.app}.`);
+    if(plat==="android")return modal("🤖","var(--purple-bg)","Opening in default app",`Android is opening ${t.file} in ${t.app}.`,"If no default is set, Android shows the chooser.");
+    return modal("↗","var(--purple-bg)",`Opening in ${t.app}`,`Cliq is handing ${t.file} to the app your computer uses for this type.`,
+      r.p[plat].download?"The file is saved to Downloads first.":"<b>Downloads are off for this type.</b> A temporary copy is created outside Downloads and removed when Cliq closes.");}
+  if(act==="download")return modal("⭳","var(--green-bg)","Downloading",`${t.file} (${t.size}) is being saved.`,"");}
+function modal(icon,bg,title,body,note,btns){
+  const m=document.getElementById("modal");m.className="modal center";
+  m.innerHTML=`<div class="mi" style="background:${bg}">${icon}</div><h4>${title}</h4><p>${body}</p>
+    ${note?`<div class="mnote">${note}</div>`:""}
+    <div class="mbtns" style="justify-content:center">${
+      (btns||[{t:"Close",p:true}]).map((b,i)=>`<button class="btn ${b.p?"pri":"gho"}" data-b="${i}" ${b.act?"":"data-close"}>${b.t}</button>`).join("")}</div>`;
+  document.getElementById("ovl").classList.add("on");
+  (btns||[]).forEach((b,i)=>{if(b.act){const el=m.querySelector(`[data-b="${i}"]`);
+    el.onclick=()=>{document.getElementById("ovl").classList.remove("on");setTimeout(b.act,120);};}});}
+document.getElementById("ovl").addEventListener("click",e=>{
+  if(e.target.id==="ovl"||e.target.hasAttribute("data-close"))document.getElementById("ovl").classList.remove("on");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.getElementById("ovl").classList.remove("on");});
+function toast(m){const d=document.createElement("div");d.textContent=m;
+  d.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#22272f;color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;z-index:95;box-shadow:0 6px 20px rgba(0,0,0,.25)";
+  document.body.appendChild(d);setTimeout(()=>d.remove(),2600);}
+
+/* ---------- state matrix ---------- */
+const STATES=[
+ ["Allow · Open in Cliq","Allow","Preview in Cliq","View · Download","Today's behaviour."],
+ ["Allow · Open in Cliq","Don't allow","Preview in Cliq","View","Read-only. Seen but not kept."],
+ ["Allow · Open in the default app","Allow","Opens in default app","Open · Download","Our preview is skipped entirely."],
+ ["Allow · Open in the default app","Don't allow","Opens in default app","Open","<b>CUB's setting.</b> Native rendering, nothing kept — temporary copy only."],
+ ["Allow · Open in both","Allow","Preview in Cliq","View · Open · Download","Preview first, native app one click away."],
+ ["Allow · Open in both","Don't allow","Preview in Cliq","View · Open","Good everyday default for most orgs."],
+ ["Don't allow viewing","Allow","Downloads","Download","\"Keep it but don't read it here\" — unusual but valid for archives."],
+ ["Don't allow viewing","Don't allow","Nothing — blocked dialog","Lock icon","Type is effectively blocked. Admin is warned before saving."]
+];
+const FALLS=[
+ ["No handler registered for the extension","If the rule allows <b>Open in the default app</b> or <b>Open in both</b>, attempt the default app → if no handler exists, open Cliq's preview when the format is renderable. An <b>Open in Cliq</b> rule does not fall through to the default app."],
+ ["Handler exists but the app won't launch","For a rule that allows the default-app path, the failure falls back to Cliq's preview when renderable. The temporary copy is purged."],
+ ["Cliq can't render the format either (.zip, .dwg)","The default-app path is used only when the rule explicitly allows it. Otherwise, show a blocked dialog naming the type. If download is allowed, that button is already on the card."],
+ ["Android: no matching activity","For a rule that allows the default-app path, catch the failure and use Cliq's preview when renderable. Otherwise, show the blocked/open failure state."],
+ ["iOS: share sheet","The default-app path hands the file to the system share sheet. If the rule is Open in Cliq, no external-app handoff is attempted."],
+ ["Open in the default app, viewed on web","A browser cannot hand the file to a native app, so the experience falls back to Cliq's preview where supported."]
+];
+function renderStates(){
+  document.getElementById("stateTable").innerHTML=
+   `<thead><tr><th>Viewing</th><th>Download</th><th>Clicking the file does</th><th>Buttons shown</th><th style="width:32%">Notes</th></tr></thead>
+    <tbody>${STATES.map(s=>`<tr><td><b>${s[0]}</b></td><td>${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td>
+      <td style="color:#5b6472">${s[4]}</td></tr>`).join("")}</tbody>`;
+  document.getElementById("fallTable").innerHTML=
+   `<thead><tr><th style="width:34%">Situation</th><th>What happens</th></tr></thead>
+    <tbody>${FALLS.map(f=>`<tr><td><b>${f[0]}</b></td><td style="color:#5b6472">${f[1]}</td></tr>`).join("")}</tbody>`;}
+
+document.getElementById("tabs").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-v]");if(!b)return;
+  [...document.querySelectorAll("#tabs button")].forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="v-"+b.dataset.v));});
+syncUploadUI();renderAll();renderSaveBar();
+</script>
