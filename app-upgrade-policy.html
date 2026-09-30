@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cliq Admin · App Upgrade Policy</title>
+<style>
+:root{
+  --blue:#246bce;--blue-dark:#1b5db8;--blue-soft:#eef4ff;--blue-line:#d7e6f8;
+  --text:#1d2530;--muted:#667085;--faint:#98a2b3;--line:#dfe3e8;--soft:#f7f8fa;
+  --green:#087f5b;--greenbg:#e9f7f1;--amber:#8a5a00;--amberbg:#fff7e6;--amberline:#f0d39d;
+  --red:#b42318;--redbg:#fff1f0;--redline:#f0b9b3;--shadow:0 16px 40px rgba(16,24,40,.18)
+}
+*{box-sizing:border-box}
+body{margin:0;background:#f6f7f9;color:var(--text);font:13px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.top{height:50px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:16px}
+.brand{font-weight:700;font-size:15px}
+.crumb{color:var(--muted)}.crumb b{color:#344054}
+.search{margin-left:auto;width:235px;height:32px;border:1px solid #d6dbe3;border-radius:6px;padding:0 10px;color:var(--faint)}
+.layout{display:grid;grid-template-columns:184px 224px 1fr;min-height:calc(100vh - 50px)}
+.left{background:#fff;border-right:1px solid var(--line);padding:10px 8px}
+.nav-title{font-size:11px;font-weight:700;padding:9px 8px;letter-spacing:.02em;color:#7a8492}
+.nav-sub{padding:5px 8px 5px 15px;color:#7a8492}.nav-sub.active{background:var(--blue-soft);color:#185abd;border-radius:6px}
+.modules{background:#fff;border-right:1px solid var(--line);padding-top:14px}
+.modules h4{padding:0 20px 12px;margin:0;font-size:13px}
+.module{padding:10px 20px;color:var(--muted);display:flex;gap:10px;align-items:center}
+.module.active{background:var(--blue-soft);color:#1557a8;font-weight:600;border-right:2px solid var(--blue)}
+.ico{width:20px;text-align:center}
+.main{padding:22px 28px;overflow:auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;min-height:640px}
+.head{padding:20px 22px 17px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.head-copy{min-width:0}.head h1{font-size:17px;margin:0;font-weight:650}.head p{margin:5px 0 0;color:var(--muted)}
+.head .switch{margin-top:1px}
+.switch{width:44px;height:24px;position:relative;display:inline-block;flex:none}
+.switch input{display:none}
+.slider{position:absolute;inset:0;background:#c7cdd5;border-radius:20px;cursor:pointer}
+.slider:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.22);transition:.18s}
+.switch input:checked+.slider{background:var(--blue)}.switch input:checked+.slider:before{transform:translateX(20px)}
+.scope-note{margin:16px 22px 0;padding:11px 13px;background:var(--soft);border:1px solid #e4e7ec;border-radius:8px;color:var(--muted);font-size:12px;display:none}
+.scope-note.show{display:block}
+.scope-note b{color:#344054}
+.platforms{display:none}.platforms.show{display:block}
+.page-tabs{display:none;border-bottom:1px solid var(--line);padding:0 22px;background:#fff}
+.page-tabs.show{display:flex}
+.page-tab{border:0;background:none;padding:13px 4px;margin-right:24px;color:var(--muted);font-weight:600;cursor:pointer;border-bottom:2px solid transparent}
+.page-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.platform-row{padding:18px 22px;border-bottom:1px solid #eaecf0;display:flex;justify-content:space-between;align-items:center;gap:18px}
+.platform-row:last-child{border-bottom:0}
+.platform-main{display:flex;gap:12px;align-items:center;min-width:0}
+.app-icon{width:36px;height:36px;border-radius:9px;background:#f0f5fb;color:#245da6;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex:none}
+.platform-name{font-weight:600}
+.platform-meta{color:var(--muted);font-size:12px;margin-top:3px}
+.right-actions{display:flex;align-items:center;gap:8px}
+.btn{height:34px;border:1px solid #cbd3df;border-radius:7px;background:#fff;color:#23415f;padding:0 13px;cursor:pointer;font:inherit}
+.btn:hover{background:#f8fafc}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.primary:hover{background:var(--blue-dark)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.badge{display:inline-flex;align-items:center;border-radius:14px;padding:3px 9px;font-size:11px;font-weight:600}
+.badge.green{background:var(--greenbg);color:var(--green)}
+.badge.gray{background:#f0f2f5;color:var(--muted)}
+.badge.amber{background:var(--amberbg);color:var(--amber)}
+.badge.red{background:var(--redbg);color:var(--red)}
+.badge.blue{background:var(--blue-soft);color:#185abd}
+.overlay{position:fixed;inset:0;background:rgba(16,24,40,.42);display:none;z-index:20}
+.overlay.open{display:flex}
+#users{z-index:40}
+.modal{width:min(560px,calc(100% - 32px));max-height:90vh;background:#fff;border-radius:10px;box-shadow:var(--shadow);display:flex;flex-direction:column;margin:auto}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:18px}
+.modal-head h2{font-size:16px;margin:0}.modal-head p{margin:5px 0 0;color:var(--muted);font-size:12.5px}
+.close{border:0;background:none;font-size:21px;color:var(--muted);cursor:pointer;height:28px}
+.modal-body{padding:18px 22px;overflow:auto}
+.modal-foot{padding:13px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:9px}
+.drawer{position:fixed;inset:0;background:rgba(16,24,40,.42);display:none;z-index:30}.drawer.open{display:block}
+.drawer-panel{position:absolute;right:0;top:0;width:min(520px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.drawer-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:18px}
+.drawer-head h2{font-size:17px;margin:0}.drawer-head p{margin:5px 0 0;color:var(--muted)}
+.drawer-body{padding:18px 22px;overflow:auto;flex:1}
+.drawer-foot{padding:13px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+.field{margin-bottom:22px}
+.field>label{display:block;font-weight:650;margin-bottom:5px}
+.help{font-size:12px;color:var(--muted);margin-bottom:9px}
+.help-small{font-size:11.5px;color:var(--faint);margin-top:7px}
+.select{width:100%;height:39px;border:1px solid #cbd3df;border-radius:7px;background:#fff;padding:0 10px;font-size:13px;color:var(--text)}
+.mode-block{padding-left:25px;margin-top:6px}
+.radio{display:flex;align-items:flex-start;gap:9px;margin-bottom:2px}
+.radio input{margin-top:2px;width:16px;height:16px;accent-color:var(--blue)}
+.radio label{font-weight:500;margin:0}
+.step{display:flex;align-items:center;gap:8px;margin-top:9px}
+.step button{width:34px;height:38px;border:1px solid #cbd3df;background:#fff;border-radius:7px;font-size:17px;cursor:pointer}
+.step input{width:56px;height:38px;text-align:center;border:1px solid #cbd3df;border-radius:7px;font-size:13px}
+.step input:disabled,.step button:disabled{background:#f2f4f7;color:var(--faint);cursor:not-allowed}
+.step .unit{color:var(--muted)}
+.resolved{font-size:12px;color:#3d5a80;background:#f4f8ff;border:1px solid var(--blue-line);border-radius:7px;padding:8px 10px;margin-top:10px}
+.resolved b{color:#153a68}
+.floor-note{font-size:11.5px;color:var(--muted);margin-top:8px;padding-left:2px}
+.floor-note b{color:#475467}
+.check{display:flex;align-items:flex-start;gap:9px}
+.check input{margin-top:2px;width:16px;height:16px;accent-color:var(--blue)}
+.check label{font-weight:500;margin:0}
+.check small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.check-list{display:grid;gap:9px;margin-top:11px;padding-left:25px}
+.check-list.disabled{opacity:.48}
+.inline-warn{font-size:12px;color:var(--amber);margin-top:8px;padding-left:25px;display:none}
+.inline-warn.show{display:block}
+.subsection{padding-left:25px;margin-top:4px}
+.security{border:1px solid #dfe5ec;background:#f8fafc;border-radius:8px;padding:12px;margin-top:14px}
+.summary{padding:12px 13px;border-radius:8px;background:#f4f8ff;border:1px solid var(--blue-line);color:#234b7d;font-size:12.5px;line-height:1.55;margin-bottom:18px}
+.summary b{color:#153a68}
+.warning{padding:10px 12px;background:var(--amberbg);border:1px solid var(--amberline);color:#775000;border-radius:7px;font-size:12px;margin-top:10px}
+.impact{border-top:1px solid var(--line);padding:7px 16px;background:#fbfcfe;flex:none}
+.impact-row{display:flex;gap:7px}
+.stat{flex:1;border:1px solid var(--line);border-radius:7px;background:#fff;padding:6px 9px;cursor:pointer;text-align:left;font:inherit;line-height:1.15;min-height:42px}
+.stat:hover{border-color:#b8c7da;background:#fbfdff}
+.stat b{font-size:16px;display:inline-block;margin-right:5px}
+.stat .lbl{font-weight:600;font-size:11.5px}
+.stat .sub{color:var(--faint);font-size:10px;display:inline}
+.stat.amber b{color:var(--amber)}.stat.red b{color:var(--red)}.stat.green b{color:var(--green)}
+.impact-note{display:none}
+.link{border:0;background:none;color:var(--blue);cursor:pointer;font:inherit;padding:0}
+.filters{display:flex;gap:8px;margin-bottom:12px}
+.input{height:36px;border:1px solid #cbd3df;border-radius:7px;padding:0 10px;min-width:240px;font:inherit}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px 9px;border-bottom:1px solid #eaecf0;text-align:left;font-size:12px}
+.table th{color:var(--muted);background:#fafbfc;font-weight:600}
+.bulkbar{display:none;padding:9px 12px;background:#f5f9ff;border:1px solid var(--blue-line);border-radius:7px;margin-bottom:10px;justify-content:space-between;align-items:center}
+.bulkbar.show{display:flex}
+.sim{display:none;padding:20px 22px}.sim.show{display:block}
+.sim-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.sim-head h2{font-size:16px;margin:0}.sim-head p{margin:4px 0 0;color:var(--muted)}
+.sim-controls{display:flex;gap:8px;align-items:center}
+.sim-select{width:160px}
+.seg{display:inline-flex;border:1px solid #cbd3df;border-radius:8px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:8px 14px;font:inherit;cursor:pointer;color:#23415f}
+.seg button+button{border-left:1px solid #cbd3df}
+.seg button.active{background:var(--blue);color:#fff}
+.sim-section{margin-bottom:26px}
+.sim-section h3{font-size:13px;margin:0 0 5px}.sim-section>p{margin:0 0 12px;color:var(--muted);font-size:12px}
+.preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.preview-card{border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden}
+.preview-card-head{padding:11px 13px;border-bottom:1px solid var(--line);font-weight:650;display:flex;justify-content:space-between;align-items:center}
+.preview-card-body{padding:13px;background:#f8fafc;min-height:150px}
+.taz-msg{background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px;box-shadow:0 2px 8px rgba(16,24,40,.06)}
+.taz-top{display:flex;align-items:center;gap:8px;font-weight:650;margin-bottom:8px}
+.taz-dot{width:24px;height:24px;border-radius:7px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.mail{background:#fff;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.mail-bar{padding:8px 10px;background:#f3f5f7;color:var(--muted);font-size:11px}
+.mail-body{padding:12px}.mail-subject{font-weight:650;margin-bottom:8px}
+.push{width:100%;max-width:250px;margin:auto;background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px;box-shadow:0 5px 15px rgba(16,24,40,.12)}
+.push-top{font-size:10px;color:var(--muted);margin-bottom:5px}.push-title{font-weight:650;font-size:12px}.push-text{font-size:11px;color:#475467;margin-top:3px}
+.block-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.device{border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden}
+.device-head{padding:10px 12px;border-bottom:1px solid var(--line);font-weight:650}
+.device-screen{margin:12px;border:1px solid var(--line);border-radius:8px;background:#f8fafc;min-height:210px;display:flex;align-items:center;justify-content:center;padding:16px}
+.blocked-box{text-align:center;max-width:230px}
+.blocked-icon{width:36px;height:36px;border-radius:50%;background:var(--redbg);color:var(--red);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-weight:700}
+.blocked-box h4{margin:0 0 6px;font-size:13px}
+.blocked-box p{margin:0 0 4px;color:var(--muted);font-size:11px;line-height:1.5}
+.ver-line{display:flex;justify-content:space-between;font-size:11px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 8px;margin:8px 0}
+.ver-line span:first-child{color:var(--muted)}.ver-line span:last-child{font-weight:600}
+.device-action{margin-top:10px;height:31px;border-radius:6px;border:1px solid var(--blue);background:var(--blue);color:#fff;padding:0 12px;cursor:pointer;font:inherit}
+.device-action.ghost{background:#fff;color:var(--blue)}
+.sim-note{padding:10px 12px;background:#f8fafc;border:1px solid #e4e7ec;border-radius:7px;color:var(--muted);font-size:12px;margin-top:12px}
+.empty-sim{padding:44px 20px;text-align:center;border:1px dashed #cbd3df;border-radius:9px;color:var(--muted)}
+.empty-sim strong{display:block;color:#344054;margin-bottom:4px}
+.toast{position:fixed;right:20px;bottom:20px;background:#202124;color:#fff;padding:10px 14px;border-radius:7px;display:none;z-index:100}
+.toast.show{display:block}
+@media(max-width:920px){.layout{grid-template-columns:1fr}.left,.modules{display:none}.main{padding:16px}.search{display:none}.preview-grid,.block-grid{grid-template-columns:1fr}}
+@media(max-width:620px){.platform-row{align-items:flex-start;flex-direction:column}.right-actions{width:100%}.input{min-width:0;width:100%}.filters{flex-direction:column}.impact-row{flex-direction:column}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">▧ Cliq</div>
+  <div class="crumb">⌂ &nbsp; <b>Admin Panel</b> &nbsp;›&nbsp; <b>Security</b> &nbsp;›&nbsp; <b>Protection Controls</b></div>
+  <input class="search" placeholder="Search  (⌘+K)">
+</header>
+<div class="layout">
+<aside class="left">
+  <div class="nav-title">USERS &amp; PROFILES</div>
+  <div class="nav-title">ORGANIZATION</div>
+  <div class="nav-title">PERMISSIONS</div>
+  <div class="nav-title">CUSTOMISATION</div>
+  <div class="nav-title">INTEGRATION</div>
+  <div class="nav-title">DATA ADMINISTRATION</div>
+  <div class="nav-title">SECURITY</div>
+  <div class="nav-sub">Dashboard</div>
+  <div class="nav-sub">Allowed IPs</div>
+  <div class="nav-sub">Data Loss Prevention</div>
+  <div class="nav-sub active">Protection Controls</div>
+  <div class="nav-title">REPORTS</div>
+</aside>
+<section class="modules">
+  <h4>Protection Controls</h4>
+  <div class="module"><span class="ico">◉</span>Domain Controller</div>
+  <div class="module"><span class="ico">⌁</span>Safe Link Management</div>
+  <div class="module"><span class="ico">◫</span>File Upload Governance</div>
+  <div class="module"><span class="ico">♢</span>Identity Protection</div>
+  <div class="module"><span class="ico">◴</span>Session &amp; Timeout Settings</div>
+  <div class="module active"><span class="ico">↻</span>App Upgrade Policy</div>
+  <div class="module"><span class="ico">♧</span>Security Alert Workflows</div>
+</section>
+<main class="main"><div class="card">
+  <section class="head">
+    <div class="head-copy"><h1>App Upgrade Policy <span class="badge blue" style="vertical-align:middle;margin-left:6px">New</span></h1><p>Keep your organisation on recent versions of Cliq. Remind users to update, then block older versions until they do.</p></div>
+    <label class="switch" aria-label="Enable App Upgrade Policy"><input id="master" type="checkbox"><span class="slider"></span></label>
+  </section>
+  <section id="scopeNote" class="scope-note">
+    <b>Good to know.</b> The web version of Cliq is always up to date, so it is never affected by this policy. You can always open this admin console from the web, even if your own app is behind, so you can never lock yourself out.
+  </section>
+  <section id="platforms" class="platforms">
+    <div class="page-tabs" id="pageTabs">
+      <button class="page-tab active" data-tab="policy">Policy</button>
+      <button class="page-tab" data-tab="simulation">Simulation</button>
+    </div>
+    <div id="policyView"><div id="platformRows"></div></div>
+    <div id="simulationView" class="sim"></div>
+  </section>
+</div></main>
+</div>
+
+<!-- Configure drawer -->
+<div class="drawer" id="drawer" aria-hidden="true"><div class="drawer-panel">
+  <div class="drawer-head"><div><h2 id="drawerTitle"></h2><p>Choose when users are reminded and when they are blocked.</p></div><button class="close" id="closeDrawer" aria-label="Close">×</button></div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="impact" id="impactPanel" style="display:none"></div>
+  <div class="drawer-foot"><button class="btn" id="cancelDrawer">Cancel</button><div style="display:flex;gap:8px"><button class="btn" id="applyAllFromDrawer">Apply to all apps</button><button class="btn primary" id="saveDrawer">Save</button></div></div>
+</div></div>
+
+<!-- Apply-to-all confirm -->
+<div class="overlay" id="confirm" aria-hidden="true"><div class="modal">
+  <div class="modal-head"><div><h2 id="confirmTitle">Apply to the other apps?</h2><p id="confirmText"></p></div><button class="close" id="closeConfirm" aria-label="Close">×</button></div>
+  <div class="modal-body" id="confirmBody"></div>
+  <div class="modal-foot"><button class="btn" id="cancelConfirm">Cancel</button><button class="btn primary" id="confirmApply">Apply</button></div>
+</div></div>
+
+<!-- Affected users -->
+<div class="overlay" id="users" aria-hidden="true"><div class="modal" style="width:min(880px,calc(100% - 32px))">
+  <div class="modal-head"><div><h2 id="usersTitle">Affected users</h2><p id="usersSub"></p></div><button class="close" id="closeUsers" aria-label="Close">×</button></div>
+  <div class="modal-body">
+    <div class="filters"><input class="input" id="userSearch" placeholder="Search users"><select class="select" id="userFilter" style="max-width:190px"><option value="all">All</option><option value="notify">Reminded</option><option value="grace">In grace</option><option value="block">Blocked</option></select></div>
+    <div class="bulkbar" id="bulkbar"><span id="selectedText">0 selected</span><button class="btn" id="bulkRemind">Send reminder</button></div>
+    <table class="table"><thead><tr><th style="width:25px"></th><th>Person</th><th>Version</th><th>Behind</th><th>Status</th><th>Device</th><th></th></tr></thead><tbody id="userRows"></tbody></table>
+  </div>
+  <div class="modal-foot"><button class="btn" id="closeUsers2">Done</button></div>
+</div></div>
+
+<!-- Disable confirm -->
+<div class="overlay" id="disableConfirm" aria-hidden="true"><div class="modal" style="width:min(500px,calc(100% - 32px))">
+  <div class="modal-head"><div><h2>Turn off app upgrade policy?</h2><p>Your organisation will go back to Cliq's own version requirements. Your settings are kept, so you can turn the policy back on later without setting it up again.</p></div><button class="close" id="closeDisable" aria-label="Close">×</button></div>
+  <div class="modal-foot"><button class="btn" id="keepEnabled">Keep policy on</button><button class="btn primary" id="turnOff">Turn off policy</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Version model ----------
+   The admin sets plain numbers (allow the last N versions, remind at M behind).
+   Each app resolves those numbers against its own versions, on the client.
+   'lines' = release lines newest first. floor = absolute minimum version Cliq supports (or null).
+   line(v) pulls the release line out of a full version string.                                  */
+const PLAT={
+  Desktop:{icon:'PC',current:'1.8.4.0',
+    lines:['1.8.4','1.8.3','1.8.2','1.8.1','1.8.0','1.7.0','1.6.0','1.5.0','1.4.0'],
+    floor:{version:'1.4.0',index:8},
+    line:v=>v.split('.').slice(0,3).join('.')},
+  iOS:{icon:'iOS',current:'7.0.6.11',
+    lines:['7.0.6','7.0.5','7.0.4','7.0.3','7.0.2','7.0.1','7.0.0'],
+    floor:{version:'5.0',index:null},   // 5.0 is older than any version shown here
+    line:v=>v.split('.').slice(0,3).join('.')},
+  Android:{icon:'A',current:'6.166',
+    lines:['6.166','6.165','6.164','6.163','6.162','6.161','6.160','6.159','6.158','6.157','6.156','6.155','6.154','6.153','6.152','6.151','6.150'],
+    floor:null,
+    line:v=>v}
+};
+const PLATFORMS=['Desktop','iOS','Android'];
+// mode: 'lastN' | 'latest'. allowN = releases behind current that stay allowed. remindM = remind from this many behind.
+const DEFAULT={blockOn:true,mode:'lastN',allowN:5,remindOn:true,remindM:3,grace:7,channels:['taz','mail'],critical:true,configured:false};
+let state={enabled:false,policies:Object.fromEntries(PLATFORMS.map(p=>[p,clone(DEFAULT)]))};
+let editing=null,draft=null,bulkDraft=null,selected=new Set(),currentRows=[];
+
+// Sample users per platform: [name, full version, device, days past the block line]
+const USERS={
+  Desktop:[['Ananya Rao','1.8.2.1','managed',1],['Rahul Menon','1.4.0.0','managed',20],['Meera Shah','1.8.1.0','managed',5],['Arjun Nair','1.7.0.2','managed',2],['Divya Krishnan','1.8.3.0','self',0],['Karthik R','1.6.0.1','managed',3],['Sneha P','1.8.1.1','self',6]],
+  iOS:[['Kavya Iyer','7.0.4.2','self',1],['Sanjay Kumar','7.0.1.0','self',10],['Nithya Raj','7.0.3.1','self',4],['Vishnu M','7.0.6.11','self',0]],
+  Android:[['Vikram S','6.160','self',12],['Asha M','6.150','managed',30],['Rohit P','6.163','self',3],['Lakshmi N','6.156','self',5]]
+};
+
+/* ---------- Helpers ---------- */
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window.__t);window.__t=setTimeout(()=>t.classList.remove('show'),2200)}
+function show(el){el.classList.add('open');el.setAttribute('aria-hidden','false')}
+function hide(el){el.classList.remove('open');el.setAttribute('aria-hidden','true')}
+function currentVersion(p){return PLAT[p].current}
+function lineIndex(p,v){const L=PLAT[p];const i=L.lines.indexOf(L.line(v));return i<0?L.lines.length:i}
+function versionAtIndex(p,i){const L=PLAT[p];return L.lines[Math.min(i,L.lines.length-1)]}
+function floorOf(p){return PLAT[p].floor}
+// How far back the admin can allow: to the floor if there is one in range, otherwise to the oldest release shown.
+function maxAllow(p){const f=PLAT[p].floor;return (f&&f.index!=null)?f.index:PLAT[p].lines.length-1}
+// Oldest release line still allowed under the policy.
+function effOldest(p,x){if(!blockingOn(x))return null;return x.mode==='latest'?0:Math.min(x.allowN,maxAllow(p))}
+function blockingOn(x){return x.blockOn}
+
+// Live classification: 'block' | 'grace' | 'notify' | 'ok'
+function classify(p,x,v,days){
+  const idx=lineIndex(p,v), f=PLAT[p].floor;
+  if(f&&f.index!=null&&idx>f.index) return 'block';        // older than Cliq's minimum: always blocked
+  if(blockingOn(x)){
+    const eff=effOldest(p,x);
+    if(idx>eff) return (days!=null&&days<=x.grace)?'grace':'block';   // past the block line: grace if still within the window
+  }
+  if(x.remindOn){
+    const hi=blockingOn(x)?effOldest(p,x):PLAT[p].lines.length;       // remind up to the block line (or all users behind, if no block)
+    if(idx>=x.remindM&&idx<=hi&&idx>0) return 'notify';
+  }
+  return 'ok';
+}
+
+/* ---------- Plain-language copy ---------- */
+function summaryLine(p,x){
+  const cur=currentVersion(p);
+  const parts=[];
+  if(x.remindOn){
+    parts.push(x.mode==='latest'&&x.blockOn
+      ? 'users are reminded as soon as they fall behind'
+      : `users are reminded once they are <b>${x.remindM} version${x.remindM===1?'':'s'} behind</b>`);
+  }
+  if(x.blockOn){
+    const grace=x.grace===0?'right away':`after a <b>${x.grace}-day</b> grace period`;
+    parts.push(x.mode==='latest'
+      ? `blocked unless they are on the latest version (<b>${cur}</b>) ${grace}`
+      : `blocked below <b>${versionAtIndex(p,effOldest(p,x))}</b> ${grace}`);
+  }
+  let sentence = parts.length ? `On the ${p} app (current version ${cur}), ${parts.join(', and ')}.` : `On the ${p} app, nothing happens yet. Turn on a reminder or a block below.`;
+  const chan=x.remindOn?` Reminders are sent through ${x.channels.map(c=>({taz:'Taz',inapp:'in-app',mail:'email'}[c])).join(' and ')||'no channel yet'}.`:'';
+  return sentence+chan;
+}
+function platformMeta(p,x){
+  if(!x.configured) return 'Not set up yet';
+  const bits=[];
+  if(x.blockOn) bits.push(x.mode==='latest'?'Require latest':`Allow last ${x.allowN} (down to ${versionAtIndex(p,effOldest(p,x))})`);
+  else bits.push('No block');
+  bits.push(x.remindOn?(x.mode==='latest'&&x.blockOn?'Remind when behind':`Remind at ${x.remindM} behind`):'No reminder');
+  if(x.blockOn) bits.push(x.grace===0?'no grace':`${x.grace}-day grace`);
+  return bits.join(' · ');
+}
+
+/* ---------- Platform list ---------- */
+function sync(){
+  document.getElementById('master').checked=state.enabled;
+  document.getElementById('platforms').classList.toggle('show',state.enabled);
+  document.getElementById('pageTabs').classList.toggle('show',state.enabled);
+  document.getElementById('scopeNote').classList.toggle('show',state.enabled);
+  const simActive=state.enabled&&document.querySelector('.page-tab.active')?.dataset.tab==='simulation';
+  document.getElementById('policyView').style.display=simActive?'none':'block';
+  document.getElementById('simulationView').classList.toggle('show',simActive);
+  if(state.enabled){renderPlatforms(); if(simActive)renderSimulation();}
+}
+function renderPlatforms(){
+  document.getElementById('platformRows').innerHTML=PLATFORMS.map(p=>{
+    const x=state.policies[p], configured=x.configured;
+    return `<div class="platform-row">
+      <div class="platform-main"><div class="app-icon">${PLAT[p].icon}</div>
+        <div><div class="platform-name">${p} app <span style="color:#98a2b3;font-weight:400;font-size:12px">· current ${currentVersion(p)}</span></div><div class="platform-meta">${platformMeta(p,x)}</div></div>
+      </div>
+      <div class="right-actions">
+        ${configured?`<span class="badge green">Configured</span><button class="btn" data-users="${esc(p)}">View users</button>`:''}
+        <button class="btn ${configured?'':'primary'}" data-edit="${esc(p)}">${configured?'Edit':'Configure'}</button>
+      </div></div>`;
+  }).join('');
+  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openDrawer(b.dataset.edit));
+  document.querySelectorAll('[data-users]').forEach(b=>b.onclick=()=>openUsers(b.dataset.users));
+}
+function configuredPlatforms(){return PLATFORMS.filter(p=>state.policies[p].configured)}
+
+/* ---------- Drawer ---------- */
+function openDrawer(p){editing=p;draft=clone(p==='ALL'?DEFAULT:state.policies[p]);renderDrawer();show(document.getElementById('drawer'))}
+function renderDrawer(){
+  const x=draft,p=editing==='ALL'?'Desktop':editing;
+  document.getElementById('drawerTitle').textContent=(editing==='ALL'?'All apps':editing+' app');
+  document.getElementById('drawerBody').innerHTML=`
+  <div class="summary" id="summaryLine"></div>
+
+  <div class="field">
+    <label>Block older versions</label>
+    <div class="help">Stop access for users on versions that are too old, after the grace period below.</div>
+    <div class="check"><input id="blockOn" type="checkbox" ${x.blockOn?'checked':''}><div><label for="blockOn">Turn on blocking</label><small>When off, users are only reminded and never blocked.</small></div></div>
+
+    <div id="blockControls" class="mode-block">
+      <div class="radio"><input type="radio" name="blockMode" id="modeLastN" value="lastN" ${x.mode==='lastN'?'checked':''}><div style="flex:1">
+        <div class="step" style="margin-top:0"><label for="modeLastN" style="margin-right:2px;font-weight:500;cursor:pointer">Allow the last</label>
+          <button type="button" id="blockMinus" aria-label="Fewer">−</button>
+          <input id="blockNum" type="number" min="1" value="${x.allowN}">
+          <button type="button" id="blockPlus" aria-label="More">+</button>
+          <span class="unit">versions</span>
+        </div>
+        <div class="help-small" id="allowHelp"></div>
+      </div></div>
+      <div class="radio" style="margin-top:12px"><input type="radio" name="blockMode" id="modeLatest" value="latest" ${x.mode==='latest'?'checked':''}><div><label for="modeLatest">Require the latest version only</label><small style="color:var(--muted);display:block;font-weight:400">Everyone must be on the current version. Anything older is blocked.</small></div></div>
+
+      <div class="resolved" id="blockResolved"></div>
+      <div class="floor-note" id="floorNote"></div>
+
+      <div class="field" style="margin:16px 0 0">
+        <label style="font-size:13px">Grace period</label>
+        <div class="help">How long users have to update after they first fall below the line. The clock starts when they cross it, not when you save.</div>
+        <select class="select" id="graceSelect">${[['0','Block right away'],['1','1 day'],['3','3 days'],['5','5 days'],['7','7 days'],['10','10 days'],['14','14 days'],['21','21 days'],['30','30 days']].map(([v,t])=>`<option value="${v}" ${x.grace===Number(v)?'selected':''}>${t}</option>`).join('')}</select>
+        <div class="warning" id="graceWarn" style="display:${x.grace===0?'block':'none'}">With no grace period, any user below the line is blocked the next time they open Cliq.</div>
+      </div>
+
+      <div class="security"><div class="check"><input id="critical" type="checkbox" ${x.critical?'checked':''}><div><label for="critical">Always allow critical security updates through</label><small>When Cliq ships an urgent security fix, users are asked to update straight away, without waiting for the grace period.</small></div></div></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Remind users first</label>
+    <div class="help">A reminder users can dismiss, sent before any user is ever blocked.</div>
+    <div class="check"><input id="remindOn" type="checkbox" ${x.remindOn?'checked':''}><div><label for="remindOn">Send a reminder before blocking</label><small>Recommended, so users get a warning before they lose access.</small></div></div>
+    <div id="remindControls" class="subsection">
+      <div class="step" id="remindStep"><span style="margin-right:2px">Start reminding at</span>
+        <button type="button" id="remindMinus" aria-label="Fewer">−</button>
+        <input id="remindNum" type="number" min="1" value="${x.remindM}">
+        <button type="button" id="remindPlus" aria-label="More">+</button>
+        <span class="unit">versions behind</span>
+      </div>
+      <div class="resolved" id="remindResolved"></div>
+      <div style="font-weight:600;margin:14px 0 2px;font-size:12.5px">Send the reminder through</div>
+      <div class="check-list" id="channelList" style="padding-left:0">
+        <div class="check"><input id="chTaz" type="checkbox" ${x.channels.includes('taz')?'checked':''}><div><label for="chTaz">Taz <span class="badge gray">Default</span></label></div></div>
+        <div class="check"><input id="chIn" type="checkbox" ${x.channels.includes('inapp')?'checked':''}><div><label for="chIn">In-app message</label></div></div>
+        <div class="check"><input id="chMail" type="checkbox" ${x.channels.includes('mail')?'checked':''}><div><label for="chMail">Email</label><small>The only channel that still reaches a user after they are blocked.</small></div></div>
+      </div>
+      <div class="inline-warn" id="channelWarn">Pick at least one channel, or turn off the reminder.</div>
+    </div>
+  </div>`;
+  wireDrawer();
+}
+
+function wireDrawer(){
+  const p=editing==='ALL'?'Desktop':editing;
+  const blockOn=document.getElementById('blockOn'), remindOn=document.getElementById('remindOn');
+  const modeLastN=document.getElementById('modeLastN'), modeLatest=document.getElementById('modeLatest');
+  const blockNum=document.getElementById('blockNum'), remindNum=document.getElementById('remindNum');
+  const blockPlus=document.getElementById('blockPlus'), blockMinus=document.getElementById('blockMinus');
+  const remindPlus=document.getElementById('remindPlus');
+
+  function refresh(){
+    readDraftLive();
+    const latest=draft.mode==='latest', cap=maxAllow(p);
+
+    // enable/disable block controls
+    document.getElementById('blockControls').style.opacity=blockOn.checked?'1':'.45';
+    document.querySelectorAll('input[name="blockMode"]').forEach(r=>r.disabled=!blockOn.checked);
+    [blockNum,blockMinus,blockPlus].forEach(el=>el.disabled=!blockOn.checked||latest);
+    document.getElementById('critical').disabled=!blockOn.checked;
+    document.getElementById('graceSelect').disabled=!blockOn.checked;
+
+    // clamp allow-last to the cap (point 2: no adjusting past the limit)
+    if(blockOn.checked&&!latest){
+      let n=Math.max(1,Math.min(cap,Number(blockNum.value)||1));
+      blockNum.value=n;
+      const atMax=n>=cap;
+      blockPlus.disabled=atMax;
+      blockPlus.title=atMax?'This is as far back as you can allow':'';
+      const f=floorOf(p);
+      document.getElementById('allowHelp').textContent = atMax
+        ? (f?`This is as far back as you can allow. Cliq always blocks versions older than ${f.version}.`:`This is the oldest version available to allow.`)
+        : `You can go back up to ${cap} versions.`;
+      draft.allowN=n;
+    }
+
+    // reminder cap: must be before the block line
+    const rcap=(blockOn.checked&&!latest)?draft.allowN:cap;
+    let m=Math.max(1,Math.min(rcap,Number(remindNum.value)||1));
+    remindNum.value=m; draft.remindM=m;
+    remindPlus.disabled=(remindOn.checked&&!latest)?(m>=rcap):false;
+
+    document.getElementById('remindControls').style.opacity=remindOn.checked?'1':'.45';
+    [remindNum,document.getElementById('remindMinus'),remindPlus].forEach(el=>el.disabled=!remindOn.checked||latest);
+    document.getElementById('remindStep').style.display=latest?'none':'flex';
+    document.getElementById('channelList').classList.toggle('disabled',!remindOn.checked);
+    document.getElementById('channelList').querySelectorAll('input').forEach(i=>i.disabled=!remindOn.checked);
+
+    // resolved block line
+    const br=document.getElementById('blockResolved');
+    if(!blockOn.checked){br.style.display='none';}
+    else if(latest){br.style.display='block';br.innerHTML=`On ${p}, only the current version <b>${currentVersion(p)}</b> is allowed. Anything older is blocked.`;}
+    else{
+      const eff=effOldest(p,draft), oldest=versionAtIndex(p,eff);
+      const older=eff<PLAT[p].lines.length-1?versionAtIndex(p,eff+1):'older builds';
+      br.style.display='block';
+      br.innerHTML=`On ${p}, <b>${oldest}</b> and newer stays allowed (current version is ${currentVersion(p)}). <b>${older}</b> and older is blocked.`;
+    }
+    // floor note (point 1: plain; point 4: only where a floor exists)
+    const fn=document.getElementById('floorNote'), f=floorOf(p);
+    if(blockOn.checked&&f){fn.style.display='block';fn.innerHTML=`Cliq always blocks versions older than <b>${f.version}</b> on ${p}, whatever you set here.`;}
+    else fn.style.display='none';
+
+    // resolved reminder line
+    const rr=document.getElementById('remindResolved');
+    if(!remindOn.checked){rr.style.display='none';}
+    else if(latest){rr.style.display='block';rr.innerHTML=`Users are reminded as soon as they are behind <b>${currentVersion(p)}</b>. They are blocked after the grace period.`;}
+    else{rr.style.display='block';rr.innerHTML=`On ${p}, reminders start at <b>${versionAtIndex(p,draft.remindM)}</b> and older, before any user is blocked.`;}
+
+    // save gating
+    const needChannel=draft.remindOn&&draft.channels.length===0;
+    const nothingOn=!draft.blockOn&&!draft.remindOn;
+    document.getElementById('channelWarn').classList.toggle('show',needChannel);
+    document.getElementById('saveDrawer').disabled=needChannel||nothingOn;
+    document.getElementById('applyAllFromDrawer').disabled=needChannel||nothingOn;
+
+    document.getElementById('summaryLine').innerHTML=summaryLine(p,draft);
+    renderImpact();
+  }
+
+  blockPlus.onclick=()=>{blockNum.value=Number(blockNum.value)+1;refresh()};
+  blockMinus.onclick=()=>{blockNum.value=Math.max(1,Number(blockNum.value)-1);refresh()};
+  blockNum.oninput=refresh;
+  remindPlus.onclick=()=>{remindNum.value=Number(remindNum.value)+1;refresh()};
+  document.getElementById('remindMinus').onclick=()=>{remindNum.value=Math.max(1,Number(remindNum.value)-1);refresh()};
+  remindNum.oninput=refresh;
+  blockOn.onchange=refresh; remindOn.onchange=refresh;
+  modeLastN.onchange=refresh; modeLatest.onchange=refresh;
+  document.getElementById('channelList').querySelectorAll('input').forEach(i=>i.onchange=refresh);
+  document.getElementById('critical').onchange=refresh;
+  document.getElementById('graceSelect').onchange=e=>{document.getElementById('graceWarn').style.display=e.target.value==='0'?'block':'none';refresh()};
+  refresh();
+}
+
+function readDraftLive(){
+  draft.blockOn=document.getElementById('blockOn').checked;
+  draft.mode=document.querySelector('input[name="blockMode"]:checked')?.value||'lastN';
+  draft.allowN=Math.max(1,Number(document.getElementById('blockNum').value)||1);
+  draft.remindOn=document.getElementById('remindOn').checked;
+  draft.remindM=Math.max(1,Number(document.getElementById('remindNum').value)||1);
+  draft.grace=Number(document.getElementById('graceSelect').value);
+  draft.critical=document.getElementById('critical').checked;
+  draft.channels=[];
+  if(document.getElementById('chTaz').checked)draft.channels.push('taz');
+  if(document.getElementById('chIn').checked)draft.channels.push('inapp');
+  if(document.getElementById('chMail').checked)draft.channels.push('mail');
+}
+
+/* ---------- Impact footer (point 5: plain language about who each number is) ---------- */
+function impactCounts(){
+  const p=editing==='ALL'?'Desktop':editing, users=USERS[p]||[];
+  let notify=0,grace=0,block=0;
+  users.forEach(u=>{const c=classify(p,draft,u[1],u[3]); if(c==='notify')notify++; else if(c==='grace')grace++; else if(c==='block')block++;});
+  const scale=users.length?Math.max(1,Math.round(80/users.length)):1;
+  return {notify:notify*scale,grace:grace*scale,block:block*scale};
+}
+function renderImpact(){
+  const panel=document.getElementById('impactPanel');panel.style.display='block';
+  const p=editing==='ALL'?'Desktop':editing;
+  const c=impactCounts();
+  panel.innerHTML=`<div class="impact-row">
+    <button class="stat" data-k="notify"><b>${c.notify}</b><span class="lbl">Users warned</span></button>
+    <button class="stat amber" data-k="grace"><b>${c.grace}</b><span class="lbl">Users entering grace</span></button>
+    <button class="stat red" data-k="block"><b>${c.block}</b><span class="lbl">Users blocked</span></button>
+  </div>`;
+  panel.querySelectorAll('.stat').forEach(b=>b.onclick=()=>openUsers(p,b.dataset.k,true));
+}
+
+/* ---------- Save / apply-to-all ---------- */
+function saveDrawer(){
+  readDraftLive();
+  if(draft.remindOn&&!draft.channels.length)return;
+  if(!draft.blockOn&&!draft.remindOn)return;
+  draft.configured=true;
+  if(editing==='ALL'){bulkDraft=clone(draft);hide(document.getElementById('drawer'));applyAllDraft('ALL');return}
+  state.policies[editing]=clone(draft);hide(document.getElementById('drawer'));sync();toast(editing+' app policy saved');
+}
+function applyAllDraft(from){
+  const conflicting=PLATFORMS.filter(p=>p!==from&&state.policies[p].configured);
+  if(!conflicting.length){PLATFORMS.forEach(p=>state.policies[p]=clone(bulkDraft));sync();toast('Settings applied to all apps');return}
+  openConfirm(conflicting,from);
+}
+function openConfirm(conflicting,from){
+  const x=bulkDraft;
+  const rule=x.blockOn?(x.mode==='latest'?'require the latest version':`allow the last ${x.allowN} versions`):'remind only';
+  const perApp=x.blockOn&&x.mode!=='latest'
+    ? PLATFORMS.map(p=>`${p}: ${versionAtIndex(p,effOldest(p,x))} and newer`).join(' · ')
+    : (x.mode==='latest'?PLATFORMS.map(p=>`${p}: ${currentVersion(p)} only`).join(' · '):'');
+  document.getElementById('confirmTitle').textContent='Apply these settings to the other apps?';
+  document.getElementById('confirmText').textContent=`These apps already have their own policy: ${conflicting.join(', ')}.`;
+  document.getElementById('confirmBody').innerHTML=`
+    ${perApp?`<div class="impact-note" style="margin-bottom:14px">The same rule (${rule}) applies to every app. Because each app numbers its versions differently, it works out to a different version on each: ${perApp}.</div>`:''}
+    <div class="check" style="margin:6px 0 12px"><input type="radio" name="applyMode" value="unconfigured" checked><div><label>Only set up the apps that have no policy yet</label><small>Leaves ${conflicting.join(', ')} as they are.</small></div></div>
+    <div class="check"><input type="radio" name="applyMode" value="all"><div><label>Replace every app with these settings</label><small>Overwrites the policy on ${conflicting.join(', ')}.</small></div></div>`;
+  window.__applyFrom=from;
+  show(document.getElementById('confirm'));
+}
+function applyAll(){
+  const mode=document.querySelector('input[name="applyMode"]:checked').value, from=window.__applyFrom;
+  PLATFORMS.forEach(p=>{if(p===from||mode==='all'||!state.policies[p].configured)state.policies[p]=clone(bulkDraft)});
+  hide(document.getElementById('confirm'));sync();
+  toast(mode==='all'?'Settings applied to all apps':'Settings applied to the remaining apps');
+}
+
+/* ---------- Affected users ---------- */
+function openUsers(p,filter,useDraft){
+  selected=new Set();
+  const x=useDraft?draft:(state.policies[p].configured?state.policies[p]:DEFAULT);
+  currentRows=(USERS[p]||[]).map(u=>({name:u[0],version:u[1],device:u[2],behind:lineIndex(p,u[1]),status:classify(p,x,u[1],u[3])})).filter(r=>r.status!=='ok');
+  document.getElementById('usersTitle').textContent='Affected users · '+p+' app';
+  document.getElementById('usersSub').textContent='Users who are outside the version rule for this app.';
+  document.getElementById('userSearch').value='';
+  document.getElementById('userFilter').value=['notify','grace','block'].includes(filter)?filter:'all';
+  show(document.getElementById('users'));renderUsers();
+}
+function statusBadge(s){return s==='block'?'<span class="badge red">Blocked</span>':s==='grace'?'<span class="badge amber">In grace</span>':'<span class="badge green">Reminded</span>'}
+function renderUsers(){
+  const q=document.getElementById('userSearch').value.toLowerCase(),f=document.getElementById('userFilter').value;
+  const rows=currentRows.filter(r=>(r.name+' '+r.version).toLowerCase().includes(q)&&(f==='all'||r.status===f));
+  document.getElementById('userRows').innerHTML=rows.map((r,i)=>`<tr>
+    <td><input type="checkbox" class="userCheck" data-i="${i}" ${selected.has(i)?'checked':''}></td>
+    <td><b>${esc(r.name)}</b><div style="color:#667085;font-size:11px">${esc(r.name.toLowerCase().replace(/ /g,'.'))}@cub.co.in</div></td>
+    <td>${esc(r.version)}</td>
+    <td>${r.behind} behind</td>
+    <td>${statusBadge(r.status)}</td>
+    <td>${r.device==='managed'?'<span class="badge gray">Managed</span>':'Self-update'}</td>
+    <td><button class="link" data-remind="${i}">Remind</button></td></tr>`).join('')
+    ||'<tr><td colspan="7" style="text-align:center;padding:28px;color:#667085">No users here</td></tr>';
+  document.querySelectorAll('.userCheck').forEach(c=>c.onchange=()=>{const i=Number(c.dataset.i);c.checked?selected.add(i):selected.delete(i);updateSel()});
+  document.querySelectorAll('[data-remind]').forEach(b=>b.onclick=()=>toast('Reminder sent'));
+  updateSel();
+}
+function updateSel(){document.getElementById('selectedText').textContent=selected.size+' selected';document.getElementById('bulkbar').classList.toggle('show',selected.size>0)}
+
+/* ---------- Simulation ---------- */
+let simDevice='self';
+function reminderCopy(p,x){
+  const detail=(x.mode==='latest'&&x.blockOn)?'behind the latest version':(x.remindOn?`${x.remindM} or more versions behind`:'behind your organisation\u2019s required version');
+  return `Your Cliq app is ${detail}. Update to keep access before your organisation\u2019s deadline.`;
+}
+function renderSimulation(){
+  const root=document.getElementById('simulationView');
+  const configured=configuredPlatforms();
+  if(!configured.length){root.innerHTML=`<div class="empty-sim"><strong>Nothing to preview yet</strong>Set up at least one app to see the reminder and blocked screens.</div>`;return}
+  const sel=document.getElementById('simPlatform')?.value||configured[0];
+  const p=state.policies[sel]?.configured?sel:configured[0];
+  const x=state.policies[p];
+  const chans=x.remindOn?x.channels:[];
+  const graceTxt=x.grace===0?'right away':`after ${x.grace} day${x.grace===1?'':'s'}`;
+  root.innerHTML=`
+  <div class="sim-head">
+    <div><h2>Simulation</h2><p>See exactly what users will see. Nothing is actually sent.</p></div>
+    <div class="sim-controls"><select class="select sim-select" id="simPlatform">${configured.map(q=>`<option value="${esc(q)}" ${q===p?'selected':''}>${q} app</option>`).join('')}</select></div>
+  </div>
+  <div class="sim-section">
+    <h3>Reminder</h3>
+    <p>Sent while users still have full access. Channels you did not choose are shown as off.</p>
+    <div class="preview-grid">
+      <div class="preview-card"><div class="preview-card-head">Taz <span class="badge ${chans.includes('taz')?'green':'gray'}">${chans.includes('taz')?'On':'Off'}</span></div><div class="preview-card-body"><div class="taz-msg"><div class="taz-top"><span class="taz-dot">T</span> Taz</div><b>Update Cliq</b><div style="font-size:11px;color:#667085;margin-top:3px">${esc(reminderCopy(p,x))}</div><button class="device-action" style="margin-top:10px">Update Cliq</button></div></div></div>
+      <div class="preview-card"><div class="preview-card-head">Email <span class="badge ${chans.includes('mail')?'green':'gray'}">${chans.includes('mail')?'On':'Off'}</span></div><div class="preview-card-body"><div class="mail"><div class="mail-bar">From: Zoho Cliq</div><div class="mail-body"><div class="mail-subject">Update required for Cliq</div><div style="font-size:11px;color:#667085">${esc(reminderCopy(p,x))}</div><button class="device-action">Update Cliq</button></div></div></div></div>
+      <div class="preview-card"><div class="preview-card-head">In-app <span class="badge ${chans.includes('inapp')?'green':'gray'}">${chans.includes('inapp')?'On':'Off'}</span></div><div class="preview-card-body"><div class="push"><div class="push-top">CLIQ · Now</div><div class="push-title">Update Cliq</div><div class="push-text">${esc(reminderCopy(p,x))}</div></div></div></div>
+    </div>
+    <div class="sim-note">Reminder for <b>${p}</b>: <b>${x.remindOn?(x.mode==='latest'&&x.blockOn?'as soon as behind the latest':'from '+x.remindM+' versions behind ('+versionAtIndex(p,x.remindM)+' and older)'):'No reminder'}</b>. Users keep full access while being reminded and during the grace period.</div>
+  </div>
+  <div class="sim-section">
+    <h3>Blocked screen</h3>
+    <p>Shown once the grace period ends. The next step depends on whether the user can update their own device.</p>
+    <div class="sim-controls" style="margin-bottom:12px"><div class="seg" id="deviceSeg">
+      <button data-dev="self" class="${simDevice==='self'?'active':''}">Person updates their own device</button>
+      <button data-dev="managed" class="${simDevice==='managed'?'active':''}">IT updates the device</button>
+    </div></div>
+    <div class="block-grid">
+      ${PLATFORMS.map(q=>{
+        const cfg=state.policies[q]?.configured?state.policies[q]:x;
+        const req=cfg.blockOn?(cfg.mode==='latest'?currentVersion(q):versionAtIndex(q,effOldest(q,cfg))):versionAtIndex(q,effOldest(q,x)||0);
+        const own=q==='Android'?'6.150':(q==='iOS'?'7.0.1.0':'1.4.0.0');
+        return `<div class="device"><div class="device-head">${q} app</div><div class="device-screen"><div class="blocked-box">
+          <div class="blocked-icon">!</div><h4>Update required</h4>
+          <p>Your organisation needs a newer version of Cliq to continue.</p>
+          <div class="ver-line"><span>Your version</span><span>${own}</span></div>
+          <div class="ver-line"><span>Needed</span><span>${req} or newer</span></div>
+          ${simDevice==='self'?`<button class="device-action">Update Cliq</button>`:`<p style="margin-top:6px">Your IT team manages Cliq updates on this device.</p><button class="device-action">Notify IT</button><button class="device-action ghost" style="margin-top:6px">Open Cliq on the web</button>`}
+        </div></div></div>`;
+      }).join('')}
+    </div>
+    <div class="sim-note">Block for <b>${p}</b>: <b>${!x.blockOn?'No block':(x.mode==='latest'?'Require latest ('+currentVersion(p)+')':versionAtIndex(p,effOldest(p,x))+' and newer allowed')}</b>, grace <b>${graceTxt}</b>. ${x.critical?'Urgent security updates come through straight away.':'Urgent security updates follow the same rule.'} The web version is never blocked.</div>
+  </div>`;
+  document.getElementById('simPlatform').onchange=renderSimulation;
+  document.querySelectorAll('#deviceSeg button').forEach(btn=>btn.onclick=()=>{simDevice=btn.dataset.dev;renderSimulation()});
+}
+
+/* ---------- Wiring ---------- */
+document.querySelectorAll('.page-tab').forEach(tab=>tab.onclick=()=>{
+  document.querySelectorAll('.page-tab').forEach(t=>t.classList.toggle('active',t===tab));
+  const sim=tab.dataset.tab==='simulation';
+  document.getElementById('policyView').style.display=sim?'none':'block';
+  document.getElementById('simulationView').classList.toggle('show',sim);
+  if(sim)renderSimulation();
+});
+document.getElementById('master').onchange=e=>{if(e.target.checked){state.enabled=true;sync()}else{e.target.checked=true;show(document.getElementById('disableConfirm'))}};
+document.getElementById('closeDisable').onclick=()=>hide(document.getElementById('disableConfirm'));
+document.getElementById('keepEnabled').onclick=()=>hide(document.getElementById('disableConfirm'));
+document.getElementById('turnOff').onclick=()=>{state.enabled=false;hide(document.getElementById('disableConfirm'));sync();toast('App upgrade policy turned off')};
+document.getElementById('closeDrawer').onclick=()=>hide(document.getElementById('drawer'));
+document.getElementById('cancelDrawer').onclick=()=>hide(document.getElementById('drawer'));
+document.getElementById('saveDrawer').onclick=saveDrawer;
+document.getElementById('applyAllFromDrawer').onclick=()=>{readDraftLive();if(draft.remindOn&&!draft.channels.length)return;if(!draft.blockOn&&!draft.remindOn)return;draft.configured=true;bulkDraft=clone(draft);const from=editing;if(from!=='ALL')state.policies[from]=clone(draft);hide(document.getElementById('drawer'));applyAllDraft(from)};
+document.getElementById('closeConfirm').onclick=()=>hide(document.getElementById('confirm'));
+document.getElementById('cancelConfirm').onclick=()=>hide(document.getElementById('confirm'));
+document.getElementById('confirmApply').onclick=applyAll;
+document.getElementById('closeUsers').onclick=()=>hide(document.getElementById('users'));
+document.getElementById('closeUsers2').onclick=()=>hide(document.getElementById('users'));
+document.getElementById('userSearch').oninput=renderUsers;
+document.getElementById('userFilter').onchange=renderUsers;
+document.getElementById('bulkRemind').onclick=()=>{toast('Reminder sent to selected users');selected.clear();renderUsers()};
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const id of ['users','confirm','drawer','disableConfirm']){const el=document.getElementById(id);if(el.classList.contains('open')){hide(el);return}}});
+sync();
+</script>
+</body>
+</html>
